@@ -251,6 +251,17 @@ async def test_search_by_vehicle_requires_region_or_generation(call_tool):
         })
 
 
+async def test_validation_error_actionable_message(call_tool):
+    """API validation errors should include actionable hints."""
+    from ws_mcp.server import mcp
+
+    with pytest.raises(ToolError, match="bolt_pattern") as exc_info:
+        await mcp.call_tool("search_by_rim", {
+            "bolt_pattern": "invalid", "rim_diameter": 18, "rim_width": 8,
+        })
+    assert "NxDDD.D" in str(exc_info.value) or "5x114.3" in str(exc_info.value)
+
+
 async def test_empty_results_invalid_make(call_tool):
     data = await call_tool("list_models", {"make": "nonexistent_brand_xyz"})
     assert data["total"] == 0

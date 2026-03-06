@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "MCP server for Wheel Fitment API — enables Claude Code and LLM agents to query vehicle wheel/tire compatibility data"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Driveate", email = "info@wheel-size.com" },
 ]
@@ -14,7 +14,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries",
@@ -42,7 +41,7 @@ build-backend = "hatchling.build"
 packages = ["src/ws_mcp"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 120
 
 [tool.ruff.lint]

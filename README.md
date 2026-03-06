@@ -5,7 +5,7 @@ MCP (Model Context Protocol) server for the [Wheel Fitment API](https://api.whee
 ## Setup
 
 ```bash
-pip install -e ".[dev]"
+uv sync --dev
 ```
 
 ### Environment Variables
@@ -41,7 +41,7 @@ claude mcp add wheel-size-api -- wheel-size-mcp
 
 ## Available Tools
 
-### Vehicle Lookup (call in order)
+### Catalog (call in order)
 
 | Tool | Description |
 |------|-------------|
@@ -50,16 +50,18 @@ claude mcp add wheel-size-api -- wheel-size-mcp
 | `list_years(make, model)` | List available years. |
 | `list_generations(make, model)` | List generations (alternative to years). |
 | `list_modifications(make, model, year)` | List trims/modifications. |
-| `search_by_vehicle(make, model, year)` | Get wheel/tire fitment data. **User-initiated.** |
+| `list_regions` | Available market regions. |
 
-### Reverse Lookup
+### Search
 
 | Tool | Description |
 |------|-------------|
+| `search_by_vehicle(make, model, year)` | Get wheel/tire fitment data. **User-initiated.** |
 | `search_by_rim(bolt_pattern, ...)` | Find vehicles by rim specs. **User-initiated.** |
 | `search_by_tire(section_width, aspect_ratio, rim_diameter)` | Find vehicles by tire size. **User-initiated.** |
+| `calculate_upsteps(rim_diameter, rim_width, rim_offset, section_width, aspect_ratio)` | Plus/minus sizing. |
 
-### Product Cards (Classified)
+### Classified (Product Cards)
 
 | Tool | Description |
 |------|-------------|
@@ -69,13 +71,6 @@ claude mcp add wheel-size-api -- wheel-size-mcp
 | `find_vehicles_for_tire(section_width, aspect_ratio, rim_diameter)` | Vehicles for a tire size. |
 | `find_vehicles_for_package(bolt_pattern, ..., section_width, aspect_ratio)` | Vehicles for rim+tire combo. |
 
-### Calculator
-
-| Tool | Description |
-|------|-------------|
-| `calculate_upsteps(rim_diameter, rim_width, rim_offset, section_width, aspect_ratio)` | Plus/minus sizing. |
-| `list_regions` | Available market regions. |
-
 ## API Terms of Service
 
 Search tools (`search_by_vehicle`, `search_by_rim`, `search_by_tire`) **must be initiated by real users** per [API Terms of Usage](https://api-demo.wheel-size.com/api-tos/). Do not call in autonomous agent loops.
@@ -84,10 +79,13 @@ Search tools (`search_by_vehicle`, `search_by_rim`, `search_by_tire`) **must be 
 
 ```bash
 # Install dev dependencies
-pip install -e ".[dev]"
+uv sync --dev
 
-# Run tests
-pytest
+# Run tests (requires local API at http://api.ws.local)
+uv run pytest
+
+# Unit tests only (no API needed)
+uv run pytest -m "not integration"
 
 # Lint
 ruff check .

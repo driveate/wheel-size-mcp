@@ -65,7 +65,7 @@ def filter_vehicle_fitment(item: dict, detail_level: str = "concise") -> dict:
                 "front_rim_offset": w.get("front", {}).get("rim_offset"),
                 "front_tire_pressure": w.get("front", {}).get("tire_pressure"),
                 "rear_rim": w.get("rear", {}).get("rim") if w.get("rear") else None,
-                "rear_tire": w.get("rear", {}).get("tire_full") or (w.get("rear", {}).get("tire") if w.get("rear") else None),
+                "rear_tire": (w["rear"].get("tire_full") or w["rear"].get("tire")) if w.get("rear") else None,
             }
             for w in wheels
         ]

@@ -5,6 +5,7 @@ Skip with: pytest -m "not integration"
 """
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 pytestmark = pytest.mark.integration
 
@@ -175,7 +176,6 @@ RIM_SPEC = {
 }
 
 
-@pytest.mark.xfail(reason="API bug: TiresByRim.get_results() unexpected kwarg 'diameter_range'")
 async def test_find_tires_for_rim(call_tool):
     data = await call_tool("find_tires_for_rim", RIM_SPEC)
     assert data["total"] > 0
@@ -239,6 +239,16 @@ async def test_classified_drill_down_flow(call_tool):
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
+
+async def test_search_by_vehicle_requires_region_or_generation(call_tool):
+    """search_by_vehicle must reject calls without region or generation."""
+    from ws_mcp.server import mcp
+
+    with pytest.raises(ToolError, match="region.*generation"):
+        await mcp.call_tool("search_by_vehicle", {
+            "make": "toyota", "model": "camry", "year": 2024,
+        })
 
 
 async def test_empty_results_invalid_make(call_tool):

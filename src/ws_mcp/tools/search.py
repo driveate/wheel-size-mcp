@@ -11,6 +11,8 @@ from typing import Annotated, Literal
 from fastmcp import FastMCP
 from pydantic import Field
 
+from fastmcp.exceptions import ToolError
+
 from ws_mcp.client import DEFAULT_LIMIT, api
 from ws_mcp.response import filter_vehicle_fitment, paginated_response
 
@@ -36,12 +38,20 @@ def register(mcp: FastMCP):
         Returns OEM and optional wheel/tire specs including rim diameter, width,
         offset, bolt pattern, tire sizes, and tire pressure.
 
+        Requires at least one of: region (e.g. 'usdm') or a specific modification slug.
+        Use list_regions to see valid region slugs.
+
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests fitment information. Do not call in autonomous loops.
 
         Use list_makes -> list_models -> list_years -> list_modifications first
         if you don't have exact make/model/year values.
         """
+        if not region and not generation:
+            raise ToolError(
+                "Either 'region' or 'generation' is required. "
+                "Use list_regions to find valid region slugs (e.g. 'usdm', 'eudm')."
+            )
         params = {
             "make": make, "model": model, "year": year,
             "generation": generation, "region": region,
@@ -55,8 +65,8 @@ def register(mcp: FastMCP):
     @mcp.tool()
     async def search_by_rim(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
-        rim_diameter: Annotated[float | None, Field(ge=8, le=26, description="Rim diameter in inches")] = None,
-        rim_width: Annotated[float | None, Field(ge=2, le=14, description="Rim width in inches")] = None,
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 18)")],
+        rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches (e.g. 8)")],
         rim_offset: Annotated[int | None, Field(ge=-150, le=150, description="Rim offset in mm")] = None,
         region: Annotated[str | None, Field(description="Region slug")] = None,
         mode: Annotated[Literal["both", "front_only", "rear_only"] | None, Field(description="Axle mode")] = None,
@@ -65,8 +75,8 @@ def register(mcp: FastMCP):
     ) -> dict:
         """Find vehicles compatible with given rim specs.
 
-        Pass bolt_pattern alone to get a list of matching vehicles.
-        Add rim_diameter, rim_width, rim_offset for more precise results.
+        Requires bolt_pattern, rim_diameter, and rim_width.
+        Add rim_offset for more precise results.
 
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a rim compatibility search. Do not call in autonomous loops.

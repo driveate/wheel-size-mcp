@@ -1,13 +1,25 @@
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Build / packaging
 *.egg-info/
+*.egg
+.eggs/
 dist/
 build/
-.eggs/
-*.egg
+
+# Virtual environments
 .venv/
 venv/
+
+# Environment variables
 .env
+
+# Tool caches
 .pytest_cache/
 .ruff_cache/
+
+# AI assistant configs
+CLAUDE.md

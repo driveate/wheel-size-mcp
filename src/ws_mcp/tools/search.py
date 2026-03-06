@@ -9,9 +9,8 @@ from __future__ import annotations
 from typing import Annotated, Literal
 
 from fastmcp import FastMCP
-from pydantic import Field
-
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
 from ws_mcp.client import DEFAULT_LIMIT, api
 from ws_mcp.response import filter_vehicle_fitment, paginated_response

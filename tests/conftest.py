@@ -8,17 +8,19 @@ import pytest
 
 # Point client at local API before importing ws_mcp modules
 os.environ.setdefault("API_BASE_URL", "http://api.ws.local")
+os.environ.setdefault("API_HOST_HEADER", "api.ws.local")
 
-from ws_mcp.client import WheelSizeClient, api  # noqa: E402
+from ws_mcp.client import api  # noqa: E402
 from ws_mcp.server import mcp  # noqa: E402
 
 
 def _api_is_reachable() -> bool:
     """Check if the local API is reachable."""
     try:
+        headers = {"Host": api.host_header} if api.host_header else {}
         r = httpx.get(
             f"{api.base_url}/v2/regions/",
-            headers={"Host": api.host_header},
+            headers=headers,
             timeout=5.0,
         )
         return r.status_code == 200

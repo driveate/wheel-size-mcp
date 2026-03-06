@@ -8,7 +8,6 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from ws_mcp.client import api
-from ws_mcp.response import paginated_response
 
 
 def register(mcp: FastMCP):
@@ -106,7 +105,9 @@ def register(mcp: FastMCP):
         model: Annotated[str, Field(description="Model slug")],
         year: Annotated[int | None, Field(description="Model year")] = None,
         generation: Annotated[str | None, Field(description="Generation slug (alternative to year)")] = None,
-        region: Annotated[str | None, Field(description="Region slug (e.g. 'usdm'). Use list_regions for valid values.")] = None,
+        region: Annotated[
+            str | None, Field(description="Region slug (e.g. 'usdm'). Use list_regions for valid values.")
+        ] = None,
     ) -> dict:
         """List modifications (trims) for a specific vehicle.
 

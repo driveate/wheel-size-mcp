@@ -5,9 +5,9 @@ import os
 import httpx
 from fastmcp.exceptions import ToolError
 
-API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.wheel-size.com")
 API_KEY = os.environ.get("WHEELSIZE_API_KEY", "")
-API_HOST_HEADER = os.environ.get("API_HOST_HEADER", "api.ws.local")
+API_HOST_HEADER = os.environ.get("API_HOST_HEADER", "")
 
 # Claude Code token limits
 DEFAULT_LIMIT = 20
@@ -80,7 +80,7 @@ class WheelSizeClient:
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
 
-        headers = {"Host": self.host_header}
+        headers = {"Host": self.host_header} if self.host_header else {}
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(

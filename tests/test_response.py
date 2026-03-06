@@ -57,7 +57,10 @@ def test_filter_vehicle_fitment_full():
         "wheels": [
             {
                 "is_stock": True,
-                "front": {"rim": "7Jx17", "tire": "225/50R17", "tire_full": "225/50R17 98V", "rim_diameter": 17, "rim_width": 7, "rim_offset": 40, "tire_pressure": {"bar": 2.4}},
+                "front": {
+                    "rim": "7Jx17", "tire": "225/50R17", "tire_full": "225/50R17 98V",
+                    "rim_diameter": 17, "rim_width": 7, "rim_offset": 40, "tire_pressure": {"bar": 2.4},
+                },
                 "rear": None,
             }
         ],

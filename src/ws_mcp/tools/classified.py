@@ -55,9 +55,16 @@ def register(mcp: FastMCP):
         rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches")],
         rim_offset: Annotated[float, Field(ge=-150, le=150, description="Rim offset in mm")],
         cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore diameter in mm")] = None,
-        fs_poke: Annotated[int | None, Field(ge=0, le=150, description="Frontspace poke tolerance in mm (default 2)")] = None,
-        bs_push: Annotated[int | None, Field(ge=0, le=150, description="Backspace push tolerance in mm (default 2)")] = None,
-        sort: Annotated[Literal["name", "fitment", "load"] | None, Field(description="Sort: A-Z name, closest fitment delta, heaviest load")] = None,
+        fs_poke: Annotated[
+            int | None, Field(ge=0, le=150, description="Frontspace poke tolerance in mm (default 2)")
+        ] = None,
+        bs_push: Annotated[
+            int | None, Field(ge=0, le=150, description="Backspace push tolerance in mm (default 2)")
+        ] = None,
+        sort: Annotated[
+            Literal["name", "fitment", "load"] | None,
+            Field(description="Sort: A-Z name, closest fitment delta, heaviest load"),
+        ] = None,
         limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
         offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
     ) -> dict:

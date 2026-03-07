@@ -2,7 +2,7 @@
 
 from fastmcp import FastMCP
 
-from ws_mcp.tools import catalog, classified, search
+from ws_mcp.tools import catalog, classified, search, utility
 
 mcp = FastMCP(
     "wheel-size-api",
@@ -14,6 +14,7 @@ mcp = FastMCP(
     - Find vehicles compatible with specific rim or tire sizes (reverse lookup)
     - Generate product cards for e-commerce (classified endpoints)
     - Calculate plus/minus sizing alternatives (upsteps)
+    - Get computed geometry and intelligence for any wheel/tire spec (spec metadata)
 
     Start with list_makes if you don't know exact manufacturer names.
 
@@ -27,6 +28,7 @@ mcp = FastMCP(
 catalog.register(mcp)
 search.register(mcp)
 classified.register(mcp)
+utility.register(mcp)
 
 
 def main():

@@ -237,6 +237,69 @@ async def test_classified_drill_down_flow(call_tool):
 
 
 # ---------------------------------------------------------------------------
+# Utility tools
+# ---------------------------------------------------------------------------
+
+
+async def test_get_spec_metadata_rim_mode(call_tool):
+    data = await call_tool("get_spec_metadata", {
+        "rim_diameter": 18, "rim_width": 8,
+    })
+    assert data["mode"] == "rim"
+    assert "rim" in data
+    assert "population" in data
+    assert "hints" in data
+    assert isinstance(data["hints"], list)
+    assert data["population"]["total_wheelpairs"] > 0
+    # MCP generates hints — should mention bolt patterns for common size
+    assert any("bolt pattern" in h.lower() for h in data["hints"])
+
+
+async def test_get_spec_metadata_rim_with_offset(call_tool):
+    data = await call_tool("get_spec_metadata", {
+        "rim_diameter": 18, "rim_width": 8, "rim_offset": 45,
+    })
+    assert data["mode"] == "rim"
+    assert "geometry" in data
+    assert "frontspace" in data["geometry"]
+    assert "match_estimates" in data["population"]
+    # Should have offset percentile hint
+    assert any("percentile" in h for h in data["hints"])
+
+
+async def test_get_spec_metadata_tire_mode(call_tool):
+    data = await call_tool("get_spec_metadata", {
+        "section_width": 225, "aspect_ratio": 45, "rim_diameter": 18,
+    })
+    assert data["mode"] == "tire"
+    assert "tire_geometry" in data
+    assert "tire_population" in data
+    assert any("225/45R18" in h for h in data["hints"])
+
+
+async def test_get_spec_metadata_package_mode(call_tool):
+    data = await call_tool("get_spec_metadata", {
+        "rim_diameter": 18, "rim_width": 8, "rim_offset": 40,
+        "section_width": 245, "aspect_ratio": 45,
+    })
+    assert data["mode"] == "package"
+    assert "geometry" in data
+    assert "package" in data
+    assert "tire_geometry" in data
+    # Should have both rim and tire hints
+    assert any("bolt pattern" in h.lower() for h in data["hints"])
+    assert any("245/45R18" in h for h in data["hints"])
+
+
+async def test_get_spec_metadata_validation_error(call_tool):
+    """Missing required param combos should raise ToolError."""
+    from ws_mcp.server import mcp
+
+    with pytest.raises(ToolError):
+        await mcp.call_tool("get_spec_metadata", {"rim_diameter": 18})
+
+
+# ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
 

@@ -57,6 +57,16 @@ def _build_hints(data: dict) -> list[str]:
                             f"from {exact:,} to {at_5:,} vehicles."
                         )
 
+                # Suggest classified search when offset search yields nothing
+                if estimates and all(e["vehicles"] == 0 for e in estimates):
+                    suggested = _suggest_classified_params(data)
+                    if suggested:
+                        hints.append(
+                            f"No offset-based matches. Use find_vehicles_for_rim with "
+                            f"fs_poke={suggested['fs_poke']}, bs_push={suggested['bs_push']} "
+                            f"for geometric fitment search."
+                        )
+
                 fs_bs = pop.get("fs_bs_range", {})
                 bs_info = fs_bs.get("bs", {})
                 if bs_info:
@@ -146,6 +156,35 @@ def _build_hints(data: dict) -> list[str]:
     return hints
 
 
+# Conservative OEM floor values (mm) for FS/BS across all vehicles
+_OEM_FS_FLOOR_MM = 55
+_OEM_BS_FLOOR_MM = 100
+
+
+def _suggest_classified_params(data: dict) -> dict | None:
+    """Compute recommended fs_poke/bs_push for find_vehicles_for_rim.
+
+    Uses the searched rim's frontspace/backspace vs conservative OEM floors
+    to suggest tolerance values that will yield results.
+    """
+    geom = data.get("geometry")
+    if not geom:
+        return None
+
+    fs_inches = geom.get("frontspace")
+    bs_inches = geom.get("backspace")
+    if fs_inches is None or bs_inches is None:
+        return None
+
+    fs_mm = fs_inches * 25.4
+    bs_mm = bs_inches * 25.4
+
+    fs_poke = max(round(fs_mm - _OEM_FS_FLOOR_MM), 2)
+    bs_push = max(round(bs_mm - _OEM_BS_FLOOR_MM), 2)
+
+    return {"fs_poke": fs_poke, "bs_push": bs_push}
+
+
 def register(mcp: FastMCP):
     """Register utility tools with the MCP server."""
 
@@ -183,4 +222,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/spec/metadata/", params)
         data["hints"] = _build_hints(data)
+        suggested = _suggest_classified_params(data)
+        if suggested:
+            data["suggested_classified_params"] = suggested
         return data

@@ -25,3 +25,6 @@ venv/
 # AI assistant configs
 CLAUDE.md
 .mcp.json
+
+# Symlinks to external repos
+development/

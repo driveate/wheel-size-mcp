@@ -9,12 +9,14 @@ from pydantic import Field
 
 from ws_mcp.client import DEFAULT_LIMIT, api
 from ws_mcp.response import paginated_response
+from ws_mcp.slugify import normalize_regions, normalize_slug
+from ws_mcp.tools._annotations import CLASSIFIED_ANNOTATIONS
 
 
 def register(mcp: FastMCP):
     """Register classified tools with the MCP server."""
 
-    @mcp.tool()
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
     async def find_tires_for_rim(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches")],
@@ -48,7 +50,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool()
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
     async def find_vehicles_for_rim(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches")],
@@ -61,18 +63,39 @@ def register(mcp: FastMCP):
         bs_push: Annotated[
             int | None, Field(ge=0, le=150, description="Backspace push tolerance in mm (default 2)")
         ] = None,
-        sort: Annotated[
+        rim_bst_from: Annotated[
+            int | None, Field(ge=1, le=8, description="Backspace tolerance lower bound in mm (default 2)")
+        ] = None,
+        rim_bst_to: Annotated[
+            int | None, Field(ge=1, le=8, description="Backspace tolerance upper bound in mm (default 2)")
+        ] = None,
+        od_tolerance: Annotated[
+            float | None, Field(ge=0, le=0.05, description="Overall diameter tolerance fraction (default 0.01)")
+        ] = None,
+        ow_tolerance: Annotated[
+            float | None, Field(ge=0, le=0.03, description="Overall width tolerance fraction (default 0)")
+        ] = None,
+        ordering: Annotated[
             Literal["name", "fitment", "load"] | None,
             Field(description="Sort: A-Z name, closest fitment delta, heaviest load"),
         ] = None,
         limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
         offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
     ) -> dict:
-        """Find vehicle generations compatible with a given rim.
+        """Find vehicle generations compatible with a given rim via geometric backspace calculations.
+
+        Unlike search_by_rim (which does direct 1:1 wheel pair matching),
+        this endpoint uses advanced 2D geometric filtering based on
+        frontspace/backspace calculations to determine physical fitment.
+        This yields broader results — any vehicle where the rim physically
+        fits the wheel housing, even if this exact spec isn't in the OEM database.
 
         Returns make/model/generation with fitment deltas (frontspace/backspace),
-        load capacity, and OEM ratio ranges. Uses 2D geometric filtering for
-        accurate physical fitment.
+        load capacity, and OEM ratio ranges.
+
+        Note: in some cases spacers or special bolts/nuts may be required.
+        Always verify rims don't interfere with brake calipers or extend
+        beyond the wheel arch.
 
         For e-commerce product pages: "This wheel fits: BMW X5, Audi Q7..."
         To drill into a specific generation, use find_vehicle_modifications_for_rim.
@@ -81,7 +104,9 @@ def register(mcp: FastMCP):
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
             "rim_width": rim_width, "rim_offset": rim_offset,
             "cb": cb, "fs_poke": fs_poke, "bs_push": bs_push,
-            "sort": sort, "limit": limit, "offset": offset,
+            "rim_bst_from": rim_bst_from, "rim_bst_to": rim_bst_to,
+            "od_tolerance": od_tolerance, "ow_tolerance": ow_tolerance,
+            "ordering": ordering, "limit": limit, "offset": offset,
         }
         data = await api.get("/v2/classified/by_rim/search/", params)
         total = data["meta"]["count"]
@@ -104,7 +129,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool()
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
     async def find_vehicle_modifications_for_rim(
         make: Annotated[str, Field(description="Make slug from find_vehicles_for_rim results")],
         model: Annotated[str, Field(description="Model slug from find_vehicles_for_rim results")],
@@ -114,21 +139,32 @@ def register(mcp: FastMCP):
         rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches")],
         rim_offset: Annotated[float, Field(ge=-150, le=150, description="Rim offset in mm")],
         cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore diameter in mm")] = None,
+        region: Annotated[
+            list[str] | None,
+            Field(
+                description="Region slug(s) (e.g. ['usdm']). "
+                "Filter modifications by market region."
+            ),
+        ] = None,
         limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
         offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
     ) -> dict:
         """Drill down into individual trims for a generation from find_vehicles_for_rim.
 
+        PREREQUISITES — call find_vehicles_for_rim first to get:
+        - make, model, generation slugs (from the results)
+        - Use the same bolt_pattern, rim_diameter, rim_width, rim_offset
+
         Returns per-vehicle rows with OEM wheel specs (rim, tire, frontspace,
         backspace) and fitment deltas vs the searched rim.
-
-        Call find_vehicles_for_rim first to get make/model/generation slugs.
         """
         params = {
-            "make": make, "model": model, "generation": generation,
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "generation": normalize_slug(generation),
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
             "rim_width": rim_width, "rim_offset": rim_offset,
-            "cb": cb, "limit": limit, "offset": offset,
+            "cb": cb, "region": normalize_regions(region),
+            "limit": limit, "offset": offset,
         }
         data = await api.get("/v2/classified/by_rim/search/modifications/", params)
         total = data["meta"]["count"]
@@ -148,7 +184,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool()
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
     async def find_vehicles_for_tire(
         section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio")],
@@ -184,7 +220,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool()
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
     async def find_vehicles_for_package(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches")],
@@ -193,7 +229,19 @@ def register(mcp: FastMCP):
         section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio")],
         cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore diameter in mm")] = None,
-        sort: Annotated[Literal["name", "fitment", "load"] | None, Field(description="Sort order")] = None,
+        rim_bst_from: Annotated[
+            int | None, Field(ge=1, le=8, description="Backspace tolerance lower bound in mm (default 2)")
+        ] = None,
+        rim_bst_to: Annotated[
+            int | None, Field(ge=1, le=8, description="Backspace tolerance upper bound in mm (default 2)")
+        ] = None,
+        od_tolerance: Annotated[
+            float | None, Field(ge=0, le=0.05, description="Overall diameter tolerance fraction (default 0.01)")
+        ] = None,
+        ow_tolerance: Annotated[
+            float | None, Field(ge=0, le=0.03, description="Overall width tolerance fraction (default 0)")
+        ] = None,
+        ordering: Annotated[Literal["name", "fitment", "load"] | None, Field(description="Sort order")] = None,
         limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
         offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
     ) -> dict:
@@ -208,7 +256,9 @@ def register(mcp: FastMCP):
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
             "rim_width": rim_width, "rim_offset": rim_offset,
             "section_width": section_width, "aspect_ratio": aspect_ratio,
-            "cb": cb, "sort": sort, "limit": limit, "offset": offset,
+            "cb": cb, "rim_bst_from": rim_bst_from, "rim_bst_to": rim_bst_to,
+            "od_tolerance": od_tolerance, "ow_tolerance": ow_tolerance,
+            "ordering": ordering, "limit": limit, "offset": offset,
         }
         data = await api.get("/v2/classified/by_package/search/", params)
         total = data["meta"]["count"]

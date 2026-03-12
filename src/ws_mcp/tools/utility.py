@@ -8,6 +8,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from ws_mcp.client import api
+from ws_mcp.tools._annotations import UTILITY_ANNOTATIONS
 
 
 def _int_if_whole(v: float | int) -> float | int:
@@ -64,6 +65,8 @@ def _build_hints(data: dict) -> list[str]:
                         hints.append(
                             f"No offset-based matches. Use find_vehicles_for_rim with "
                             f"fs_poke={suggested['fs_poke']}, bs_push={suggested['bs_push']} "
+                            f"(or equivalently rim_bst_from={suggested['bs_push']}, "
+                            f"rim_bst_to={suggested['fs_poke']}) "
                             f"for geometric fitment search."
                         )
 
@@ -188,15 +191,32 @@ def _suggest_classified_params(data: dict) -> dict | None:
 def register(mcp: FastMCP):
     """Register utility tools with the MCP server."""
 
-    @mcp.tool()
+    @mcp.tool(annotations=UTILITY_ANNOTATIONS, tags={"utility"})
     async def get_spec_metadata(
-        rim_diameter: Annotated[float | None, Field(ge=8, le=30, description="Rim diameter in inches (e.g. 18)")] = None,
-        rim_width: Annotated[float | None, Field(ge=2, le=16, description="Rim width in inches (e.g. 8.0)")] = None,
-        rim_offset: Annotated[float | None, Field(ge=-150, le=150, description="Offset ET in mm (e.g. 45). Enables geometry and match estimates.")] = None,
-        bolt_pattern: Annotated[str | None, Field(description="Bolt pattern (e.g. '5x114.3'). Narrows population stats to matching vehicles.")] = None,
-        section_width: Annotated[int | None, Field(ge=95, le=405, description="Tire section width in mm (e.g. 225)")] = None,
-        aspect_ratio: Annotated[int | None, Field(ge=20, le=95, description="Tire aspect ratio (e.g. 45)")] = None,
-        overall_diameter: Annotated[float | None, Field(ge=20, le=50, description="Overall tire diameter in inches (e.g. 33). For HF tire mode.")] = None,
+        rim_diameter: Annotated[
+            float | None, Field(ge=8, le=30, description="Rim diameter in inches (e.g. 18)")
+        ] = None,
+        rim_width: Annotated[
+            float | None, Field(ge=2, le=16, description="Rim width in inches (e.g. 8.0)")
+        ] = None,
+        rim_offset: Annotated[
+            float | None,
+            Field(ge=-150, le=150, description="Offset ET in mm (e.g. 45). Enables geometry."),
+        ] = None,
+        bolt_pattern: Annotated[
+            str | None,
+            Field(description="Bolt pattern (e.g. '5x114.3'). Narrows population stats."),
+        ] = None,
+        section_width: Annotated[
+            int | None, Field(ge=95, le=405, description="Tire section width in mm (e.g. 225)")
+        ] = None,
+        aspect_ratio: Annotated[
+            int | None, Field(ge=20, le=95, description="Tire aspect ratio (e.g. 45)")
+        ] = None,
+        overall_diameter: Annotated[
+            float | None,
+            Field(ge=20, le=50, description="Overall tire diameter in inches (e.g. 33). HF mode."),
+        ] = None,
     ) -> dict:
         """Get computed geometry, population stats, and hints for a wheel/tire spec.
 

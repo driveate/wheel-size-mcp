@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 # Point client at local API before importing ws_mcp modules
-os.environ.setdefault("API_BASE_URL", "http://api.ws.local")
+os.environ.setdefault("API_BASE_URL", "http://api.ws.local:8080")
 os.environ.setdefault("API_HOST_HEADER", "api.ws.local")
 
 from ws_mcp.client import api  # noqa: E402

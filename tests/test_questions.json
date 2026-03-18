@@ -385,6 +385,12 @@
         "question": "I found 5x114.3 19x8.5 ET35 wheels at a junkyard. Will they fit my 2021 RAV4? What tires should I get?",
         "expected_tools": ["search_by_vehicle", "get_spec_metadata", "find_tires_for_rim"],
         "tests": "Compatibility check + tire recommendation for non-OEM wheel"
+      },
+      {
+        "id": "complex-07",
+        "question": "Mitshubishi colt 1.3 2011. 185/55x15 and 195/45x17 ?",
+        "expected_tools": ["search_by_vehicle", "get_spec_metadata"],
+        "tests": "Compatibility check + options checking"
       }
     ]
   },

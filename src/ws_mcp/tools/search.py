@@ -59,6 +59,7 @@ def register(mcp: FastMCP):
 
         Returns OEM and optional wheel/tire specs including rim diameter, width,
         offset, bolt pattern, tire sizes, and tire pressure.
+        Each wheel has setup='symmetric' (same front/rear) or 'staggered' (different).
 
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests fitment information. Do not call in autonomous loops.

@@ -66,6 +66,24 @@ def _filter_axle(axle: dict | None) -> dict | None:
     }
 
 
+def _resolve_rear(w: dict) -> dict | None:
+    """Resolve rear axle data, falling back to front when symmetric.
+
+    When the API sets showing_fp_only=true, front and rear specs are identical
+    but only front is populated. This copies front data to rear so the LLM
+    always sees complete axle data.
+    """
+    rear = w.get("rear")
+    if w.get("showing_fp_only") and not rear:
+        return w.get("front")
+    return rear
+
+
+def _wheel_setup(w: dict) -> str:
+    """Return 'symmetric' or 'staggered' based on axle configuration."""
+    return "symmetric" if w.get("showing_fp_only") else "staggered"
+
+
 def filter_vehicle_fitment(item: dict, detail_level: str = "concise") -> dict:
     """Filter a search_by_model result item to essential fields.
 
@@ -100,37 +118,45 @@ def filter_vehicle_fitment(item: dict, detail_level: str = "concise") -> dict:
     if detail_level == "concise":
         stock = [w for w in wheels if w.get("is_stock")]
         result["stock_wheels"] = [
-            {
-                "front": {
-                    "rim": w.get("front", {}).get("rim"),
-                    "tire": w.get("front", {}).get("tire"),
-                    "tire_pressure": w.get("front", {}).get("tire_pressure"),
-                    "load_index": w.get("front", {}).get("load_index"),
-                    "speed_index": w.get("front", {}).get("speed_index"),
-                },
-                "rear": {
-                    "rim": w.get("rear", {}).get("rim"),
-                    "tire": w.get("rear", {}).get("tire"),
-                    "tire_pressure": w.get("rear", {}).get("tire_pressure"),
-                    "load_index": w.get("rear", {}).get("load_index"),
-                    "speed_index": w.get("rear", {}).get("speed_index"),
-                } if w.get("rear") else None,
-            }
-            for w in stock[:5]
+            _concise_wheel(w) for w in stock[:5]
         ]
     elif detail_level == "full":
         result["wheels"] = [
             {
                 "is_stock": w.get("is_stock"),
-                "showing_fp_only": w.get("showing_fp_only"),
+                "setup": _wheel_setup(w),
                 "is_extra_load_tires": w.get("is_extra_load_tires"),
                 "is_recommended_for_winter": w.get("is_recommended_for_winter"),
                 "is_runflat_tires": w.get("is_runflat_tires"),
                 "is_pressed_steel_rims": w.get("is_pressed_steel_rims"),
                 "front": _filter_axle(w.get("front")),
-                "rear": _filter_axle(w.get("rear")),
+                "rear": _filter_axle(_resolve_rear(w)),
             }
             for w in wheels
         ]
 
     return result
+
+
+def _concise_wheel(w: dict) -> dict:
+    """Build a concise wheel entry with resolved rear axle."""
+    front = w.get("front", {})
+    rear_src = _resolve_rear(w) or {}
+    rear_data = {
+        "rim": rear_src.get("rim"),
+        "tire": rear_src.get("tire"),
+        "tire_pressure": rear_src.get("tire_pressure"),
+        "load_index": rear_src.get("load_index"),
+        "speed_index": rear_src.get("speed_index"),
+    } if rear_src else None
+    return {
+        "setup": _wheel_setup(w),
+        "front": {
+            "rim": front.get("rim"),
+            "tire": front.get("tire"),
+            "tire_pressure": front.get("tire_pressure"),
+            "load_index": front.get("load_index"),
+            "speed_index": front.get("speed_index"),
+        },
+        "rear": rear_data,
+    }

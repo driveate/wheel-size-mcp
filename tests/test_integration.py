@@ -20,6 +20,7 @@ async def test_list_makes(call_tool):
     make = data["makes"][0]
     assert "slug" in make
     assert "name" in make
+    assert "regions" in make
 
 
 async def test_list_makes_filter_by_year(call_tool):
@@ -35,6 +36,7 @@ async def test_list_models(call_tool):
     assert "slug" in model
     assert "name" in model
     assert "year_ranges" in model
+    assert "regions" in model
 
 
 async def test_list_years(call_tool):
@@ -51,6 +53,9 @@ async def test_list_generations(call_tool):
     assert "name" in gen
     assert "start" in gen
     assert "end" in gen
+    assert "bodies" in gen
+    assert "regions" in gen
+    assert "years" in gen
 
 
 async def test_list_modifications(call_tool):
@@ -60,6 +65,11 @@ async def test_list_modifications(call_tool):
     assert "slug" in mod
     assert "name" in mod
     assert "engine" in mod
+    assert "body" in mod
+    assert "trim_levels" in mod
+    assert "trim_attributes" in mod
+    assert "trim_body_types" in mod
+    assert "trim_scoring" in mod
 
 
 async def test_list_regions(call_tool):

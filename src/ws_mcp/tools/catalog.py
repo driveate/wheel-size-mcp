@@ -34,7 +34,7 @@ def register(mcp: FastMCP):
         return {
             "total": data["meta"]["count"],
             "makes": [
-                {"slug": m["slug"], "name": m["name"]}
+                {"slug": m["slug"], "name": m["name"], "regions": m.get("regions", [])}
                 for m in data["data"]
             ],
         }
@@ -58,7 +58,12 @@ def register(mcp: FastMCP):
         return {
             "total": data["meta"]["count"],
             "models": [
-                {"slug": m["slug"], "name": m["name"], "year_ranges": m.get("year_ranges", [])}
+                {
+                    "slug": m["slug"],
+                    "name": m["name"],
+                    "year_ranges": m.get("year_ranges", []),
+                    "regions": m.get("regions", []),
+                }
                 for m in data["data"]
             ],
         }
@@ -119,6 +124,9 @@ def register(mcp: FastMCP):
                     "start": g["start"],
                     "end": g["end"],
                     "year_ranges": g.get("year_ranges", []),
+                    "bodies": g.get("bodies", []),
+                    "regions": g.get("regions", []),
+                    "years": g.get("years", []),
                 }
                 for g in data["data"]
             ],
@@ -174,10 +182,15 @@ def register(mcp: FastMCP):
                     "slug": m["slug"],
                     "name": m["name"],
                     "trim": m.get("trim", ""),
+                    "body": m.get("body"),
                     "start_year": m.get("start_year"),
                     "end_year": m.get("end_year"),
                     "engine": m.get("engine"),
                     "regions": m.get("regions", []),
+                    "trim_levels": m.get("trim_levels", []),
+                    "trim_attributes": m.get("trim_attributes", []),
+                    "trim_body_types": m.get("trim_body_types", []),
+                    "trim_scoring": m.get("trim_scoring"),
                 }
                 for m in data["data"]
             ],

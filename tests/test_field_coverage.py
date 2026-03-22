@@ -38,6 +38,16 @@ EXPECTED_FIELDS = {
             "trim_body_types", "trim_scoring",
         ],
     },
+    "search_by_vehicle": {
+        "key": "results",
+        "args": {"make": "toyota", "model": "camry", "year": 2024, "region": "usdm"},
+        "fields": [
+            "slug", "name", "trim", "trim_levels", "trim_scoring",
+            "trim_attributes", "trim_body_types", "body",
+            "generation", "start_year", "end_year", "regions",
+            "engine", "tire_type", "technical", "wheel_count", "stock_wheels",
+        ],
+    },
 }
 
 

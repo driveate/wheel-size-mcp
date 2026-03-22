@@ -25,9 +25,16 @@ def test_filter_vehicle_fitment_concise_staggered():
         "slug": "abc123",
         "name": "2.0i",
         "trim": "Sport",
+        "trim_scoring": 0.85,
+        "trim_attributes": ["RWD"],
+        "trim_body_types": ["Saloon"],
+        "trim_levels": ["Sport"],
+        "body": "G20",
         "generation": {
+            "slug": "g20_2018",
             "name": "G20 [2018 .. 2025]", "platform": "G20",
             "start": 2018, "end": 2025,
+            "bodies": [{"slug": "saloon", "name": "Saloon", "image": "https://example.com/g20.webp"}],
         },
         "start_year": 2018,
         "end_year": 2025,
@@ -68,6 +75,14 @@ def test_filter_vehicle_fitment_concise_staggered():
         ],
     }
     result = filter_vehicle_fitment(item, "concise")
+    # New top-level fields
+    assert result["trim_scoring"] == 0.85
+    assert result["trim_attributes"] == ["RWD"]
+    assert result["trim_body_types"] == ["Saloon"]
+    assert result["body"] == "G20"
+    # Generation sub-object fields
+    assert result["generation"]["slug"] == "g20_2018"
+    assert result["generation"]["bodies"][0]["name"] == "Saloon"
     assert result["technical"]["bolt_pattern"] == "5x112"
     assert result["technical"]["wheel_fasteners"]["type"] == "Lug bolts"
     assert result["technical"]["wheel_fasteners"]["thread_size"] == "M14 x 1.25"

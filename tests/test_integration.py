@@ -117,6 +117,10 @@ async def test_navigation_flow(call_tool):
     assert "technical" in item
     assert "bolt_pattern" in item["technical"]
     assert "stock_wheels" in item  # concise detail_level default
+    assert "trim_attributes" in item
+    assert "body" in item
+    assert "slug" in item["generation"]
+    assert "bodies" in item["generation"]
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +136,11 @@ async def test_search_by_vehicle_concise(call_tool):
     item = data["results"][0]
     assert "stock_wheels" in item
     assert "wheels" not in item  # concise mode excludes full wheels
+    assert "trim_attributes" in item
+    assert "trim_body_types" in item
+    assert "body" in item
+    assert "slug" in item["generation"]
+    assert "bodies" in item["generation"]
 
 
 async def test_search_by_vehicle_full(call_tool):

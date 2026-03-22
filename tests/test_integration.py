@@ -104,7 +104,8 @@ async def test_navigation_flow(call_tool):
     })
     assert result["total"] > 0
     item = result["results"][0]
-    assert "bolt_pattern" in item
+    assert "technical" in item
+    assert "bolt_pattern" in item["technical"]
     assert "stock_wheels" in item  # concise detail_level default
 
 

@@ -69,7 +69,7 @@ async def test_list_modifications(call_tool):
     assert "trim_levels" in mod
     assert "trim_attributes" in mod
     assert "trim_body_types" in mod
-    assert "trim_scoring" in mod
+
 
 
 async def test_list_regions(call_tool):

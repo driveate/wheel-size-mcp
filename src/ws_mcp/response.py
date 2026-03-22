@@ -99,7 +99,6 @@ def filter_vehicle_fitment(item: dict, detail_level: str = "concise") -> dict:
         "name": item.get("name"),
         "trim": item.get("trim", ""),
         "trim_levels": item.get("trim_levels") or [],
-        "trim_scoring": item.get("trim_scoring"),
         "trim_attributes": item.get("trim_attributes") or [],
         "trim_body_types": item.get("trim_body_types") or [],
         "body": item.get("body"),

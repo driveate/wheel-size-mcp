@@ -25,7 +25,6 @@ def test_filter_vehicle_fitment_concise_staggered():
         "slug": "abc123",
         "name": "2.0i",
         "trim": "Sport",
-        "trim_scoring": 0.85,
         "trim_attributes": ["RWD"],
         "trim_body_types": ["Saloon"],
         "trim_levels": ["Sport"],
@@ -76,7 +75,6 @@ def test_filter_vehicle_fitment_concise_staggered():
     }
     result = filter_vehicle_fitment(item, "concise")
     # New top-level fields
-    assert result["trim_scoring"] == 0.85
     assert result["trim_attributes"] == ["RWD"]
     assert result["trim_body_types"] == ["Saloon"]
     assert result["body"] == "G20"

@@ -190,7 +190,6 @@ def register(mcp: FastMCP):
                     "trim_levels": m.get("trim_levels", []),
                     "trim_attributes": m.get("trim_attributes", []),
                     "trim_body_types": m.get("trim_body_types", []),
-                    "trim_scoring": m.get("trim_scoring"),
                 }
                 for m in data["data"]
             ],

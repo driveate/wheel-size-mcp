@@ -204,5 +204,25 @@ def register(mcp: FastMCP):
         data = await api.get("/v2/upsteps/", params)
         return {
             "total": data["meta"]["count"],
-            "options": data["data"],
+            "options": [
+                {
+                    "tire": {
+                        "designation": opt["tire"]["designation"],
+                        "section_width": opt["tire"]["section_width"],
+                        "aspect_ratio": opt["tire"]["aspect_ratio"],
+                        "weight": opt["tire"].get("weight"),
+                    },
+                    "rim": {
+                        "designation": opt["rim"]["designation"],
+                        "diameter": opt["rim"]["diameter"],
+                        "width": opt["rim"]["width"],
+                        "offset": opt["rim"]["offset"],
+                        "backspacing": opt["rim"]["backspacing"],
+                        "weight": opt["rim"].get("weight"),
+                    },
+                    "is_oe": opt.get("is_oe", False),
+                    "difference": opt.get("difference", {}),
+                }
+                for opt in data["data"]
+            ],
         }

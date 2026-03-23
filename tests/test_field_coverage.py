@@ -38,6 +38,14 @@ EXPECTED_FIELDS = {
             "trim_body_types",
         ],
     },
+    "calculate_upsteps": {
+        "key": "options",
+        "args": {
+            "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,
+            "section_width": 225, "aspect_ratio": 50,
+        },
+        "fields": ["tire", "rim", "is_oe", "difference"],
+    },
     "search_by_vehicle": {
         "key": "results",
         "args": {"make": "toyota", "model": "camry", "year": 2024, "region": "usdm"},

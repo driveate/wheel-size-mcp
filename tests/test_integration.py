@@ -182,6 +182,19 @@ async def test_calculate_upsteps(call_tool):
     })
     assert data["total"] > 0
     assert isinstance(data["options"], list)
+    opt = data["options"][0]
+    assert "tire" in opt
+    assert "designation" in opt["tire"]
+    assert "section_width" in opt["tire"]
+    assert "aspect_ratio" in opt["tire"]
+    assert "rim" in opt
+    assert "designation" in opt["rim"]
+    assert "diameter" in opt["rim"]
+    assert "width" in opt["rim"]
+    assert "offset" in opt["rim"]
+    assert "backspacing" in opt["rim"]
+    assert "is_oe" in opt
+    assert "difference" in opt
 
 
 # ---------------------------------------------------------------------------

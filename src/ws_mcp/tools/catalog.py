@@ -26,7 +26,10 @@ def register(mcp: FastMCP):
         """List all vehicle manufacturers (makes).
 
         Returns slugs and names for all car brands in the database.
-        This is the STARTING POINT for vehicle fitment lookups.
+
+        Common starting point for vehicle fitment lookups, but not the only one —
+        list_years can also be called first (without params) to start from year.
+
         After getting a make slug, use list_models to find models.
         """
         params = {"year": year, "region": normalize_regions(region)}
@@ -51,6 +54,9 @@ def register(mcp: FastMCP):
         """List models for a given make.
 
         Returns model slugs, names, and production year ranges.
+
+        Can be filtered by year to narrow results (e.g. "which Toyota models existed in 2020?").
+
         After getting a model slug, use list_years or list_generations next.
         """
         params = {"make": normalize_slug(make), "year": year, "region": normalize_regions(region)}
@@ -79,7 +85,10 @@ def register(mcp: FastMCP):
     ) -> dict:
         """List available years, optionally filtered by make and model.
 
-        Can be called without params to get all years, or with make/model to narrow down.
+        Can be called without params to get all years globally — this makes it
+        an alternative starting point for navigation (Scenario 3: years first).
+        Can also be called with make only to get years for that brand (Scenario 2).
+
         After getting a year, use list_modifications to get trims.
         """
         params = {

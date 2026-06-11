@@ -5,10 +5,15 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ws_mcp.client import api
 from ws_mcp.tools._annotations import UTILITY_ANNOTATIONS
+
+# section_width unit ranges: metric tires use mm, HF (high flotation) tires use inches
+_SW_METRIC_MM = (95, 405)
+_SW_HF_INCHES = (4.5, 14)
 
 
 def _int_if_whole(v: float | int) -> float | int:
@@ -208,7 +213,13 @@ def register(mcp: FastMCP):
             Field(description="Bolt pattern (e.g. '5x114.3'). Narrows population stats."),
         ] = None,
         section_width: Annotated[
-            int | None, Field(ge=95, le=405, description="Tire section width in mm (e.g. 225)")
+            float | None,
+            Field(
+                description=(
+                    "Tire section width. Metric tires: mm (95-405, e.g. 225). "
+                    "HF tires (when overall_diameter is set): inches (4.5-14, e.g. 12.5)."
+                )
+            ),
         ] = None,
         aspect_ratio: Annotated[
             int | None, Field(ge=20, le=95, description="Tire aspect ratio (e.g. 45)")
@@ -222,8 +233,8 @@ def register(mcp: FastMCP):
 
         Auto-detects mode from parameters:
         - rim: rim_diameter + rim_width (optionally rim_offset)
-        - tire: section_width + aspect_ratio + rim_diameter
-        - hf_tire: overall_diameter + section_width + rim_diameter
+        - tire: section_width [mm] + aspect_ratio + rim_diameter
+        - hf_tire: overall_diameter + section_width [inches] + rim_diameter
         - package: rim + tire params combined
 
         Use before search or classified calls to understand whether a spec
@@ -231,6 +242,26 @@ def register(mcp: FastMCP):
 
         This is a utility tool — can be called freely without user initiation.
         """
+        if section_width is not None:
+            if overall_diameter is not None:
+                lo, hi = _SW_HF_INCHES
+                if not (lo <= section_width <= hi):
+                    raise ToolError(
+                        f"section_width={section_width} is out of range for HF mode. "
+                        f"With overall_diameter set, section_width is in inches "
+                        f"({lo}-{hi}, e.g. 12.5 for a 35x12.50R17 tire)."
+                    )
+            else:
+                lo, hi = _SW_METRIC_MM
+                if not (lo <= section_width <= hi):
+                    raise ToolError(
+                        f"section_width={section_width} is out of range for metric mode "
+                        f"({lo}-{hi} mm, e.g. 225). For HF inch-based sizes like "
+                        f"35x12.50R17, pass overall_diameter as well."
+                    )
+                # API validates metric section_width as an integer
+                section_width = _int_if_whole(section_width)
+
         params = {
             "rim_diameter": rim_diameter,
             "rim_width": rim_width,

@@ -156,8 +156,9 @@ def register(mcp: FastMCP):
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a tire compatibility search. Do not call in autonomous loops.
 
-        For high-flotation (LT) tires with inch-based sizing (e.g. 33x12.5R15),
-        use search_by_hf_tire instead.
+        This tool accepts metric sizes only. High-flotation (LT) tires with
+        inch-based sizing (e.g. 33x12.5R15) are not supported here — use
+        get_spec_metadata (HF mode) for spec information.
         """
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,

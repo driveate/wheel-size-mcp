@@ -8,7 +8,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from ws_mcp.client import DEFAULT_LIMIT, api
-from ws_mcp.response import paginated_response
+from ws_mcp.response import map_classified_generation_row, map_drilldown_row, paginated_response
 from ws_mcp.slugify import normalize_slug
 from ws_mcp.tools._annotations import CLASSIFIED_ANNOTATIONS
 
@@ -64,24 +64,6 @@ def _geometry_params(
         "rim_bst_from": rim_bst_from, "rim_bst_to": rim_bst_to,
         "od_tolerance": od_tolerance, "ow_tolerance": ow_tolerance,
         "diameter_range": diameter_range, "sort": sort,
-    }
-
-
-def _map_drilldown_row(item: dict) -> dict:
-    """Project a classified .../search/modifications/ row to essential fields."""
-    end = item.get("production_end_year") or "present"
-    return {
-        "modification": item["slug"],
-        "trim": item.get("trim"),
-        "body": item.get("body"),
-        "years": f"{item['production_start_year']}-{end}",
-        "regions": item.get("regions", []),
-        "oem_rim": item.get("oem_rim"),
-        "oem_tire": item.get("oem_tire"),
-        "fs_delta_mm": item.get("fs_delta_mm"),
-        "bs_delta_mm": item.get("bs_delta_mm"),
-        "cb_diff_mm": item.get("cb_diff_mm"),
-        "load_kg": item.get("load_kg"),
     }
 
 
@@ -183,13 +165,7 @@ def register(mcp: FastMCP):
         total = data["meta"]["count"]
         items = [
             {
-                "make": item["model"]["make"]["slug"],
-                "make_name": item["model"]["make"]["name"],
-                "model": item["model"]["slug"],
-                "model_name": item["model"]["name"],
-                "generation": item["slug"],
-                "generation_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
+                **map_classified_generation_row(item),
                 "regions": item.get("regions", []),
                 "min_fs_delta_mm": item.get("min_fs_delta_mm"),
                 "max_fs_delta_mm": item.get("max_fs_delta_mm"),
@@ -242,7 +218,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/classified/by_rim/search/modifications/", params)
         total = data["meta"]["count"]
-        items = [_map_drilldown_row(item) for item in data["data"]]
+        items = [map_drilldown_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
@@ -291,7 +267,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/classified/by_package/search/modifications/", params)
         total = data["meta"]["count"]
-        items = [_map_drilldown_row(item) for item in data["data"]]
+        items = [map_drilldown_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
@@ -316,16 +292,7 @@ def register(mcp: FastMCP):
         data = await api.get("/v2/classified/by_tire/search/", params)
         total = data["meta"]["count"]
         items = [
-            {
-                "make": item["model"]["make"]["slug"],
-                "make_name": item["model"]["make"]["name"],
-                "model": item["model"]["slug"],
-                "model_name": item["model"]["name"],
-                "generation": item["slug"],
-                "generation_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
-                "regions": item.get("regions", []),
-            }
+            {**map_classified_generation_row(item), "regions": item.get("regions", [])}
             for item in data["data"]
         ]
         return paginated_response(items, total, offset, limit)
@@ -372,13 +339,7 @@ def register(mcp: FastMCP):
         total = data["meta"]["count"]
         items = [
             {
-                "make": item["model"]["make"]["slug"],
-                "make_name": item["model"]["make"]["name"],
-                "model": item["model"]["slug"],
-                "model_name": item["model"]["name"],
-                "generation": item["slug"],
-                "generation_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
+                **map_classified_generation_row(item),
                 "max_load_kg": item.get("max_load_kg"),
                 "cb_diff_mm": item.get("cb_diff_mm"),
             }

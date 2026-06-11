@@ -13,7 +13,12 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from ws_mcp.client import DEFAULT_LIMIT, api
-from ws_mcp.response import filter_vehicle_fitment, paginated_response
+from ws_mcp.response import (
+    filter_vehicle_fitment,
+    map_car_search_row,
+    map_modification_row,
+    paginated_response,
+)
 from ws_mcp.slugify import normalize_regions, normalize_slug
 from ws_mcp.tools._annotations import SEARCH_ANNOTATIONS
 
@@ -62,28 +67,6 @@ def _year_in_range(item: dict, year: int) -> bool:
     return (start is None or start <= year) and (end is None or year <= end)
 
 
-def _map_modification_row(item: dict) -> dict:
-    """Project a search/modifications API row to essential fields."""
-    gen = item.get("generation") or {}
-    engine = item.get("engine") or {}
-    return {
-        "modification": item["slug"],
-        "name": item["name"],
-        "trim": item.get("trim"),
-        "trim_levels": item.get("trim_levels", []),
-        "generation": gen.get("slug"),
-        "generation_name": gen.get("name"),
-        "start_year": item.get("start_year"),
-        "end_year": item.get("end_year"),
-        "engine": {
-            "fuel": engine.get("fuel"),
-            "capacity": engine.get("capacity"),
-            "hp": (engine.get("power") or {}).get("hp"),
-        },
-        "regions": item.get("regions", []),
-    }
-
-
 async def _fitment_check(path: str, params: dict, year: int | None, limit: int, offset: int) -> dict:
     """Run a search/modifications request with optional MCP-side year filtering.
 
@@ -93,7 +76,7 @@ async def _fitment_check(path: str, params: dict, year: int | None, limit: int, 
     """
     if year is None:
         data = await api.get(path, {**params, "limit": limit, "offset": offset})
-        items = [_map_modification_row(r) for r in data["data"]]
+        items = [map_modification_row(r) for r in data["data"]]
         return paginated_response(items, data["meta"]["count"], offset, limit)
 
     raw: list[dict] = []
@@ -110,7 +93,7 @@ async def _fitment_check(path: str, params: dict, year: int | None, limit: int, 
             break
 
     matched = [r for r in raw if _year_in_range(r, year)]
-    items = [_map_modification_row(r) for r in matched[offset : offset + limit]]
+    items = [map_modification_row(r) for r in matched[offset : offset + limit]]
     result = paginated_response(items, len(matched), offset, limit)
     if truncated:
         result["note"] = (
@@ -263,17 +246,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/by_rim/search/", params)
         total = data["meta"]["count"]
-        items = [
-            {
-                "make": item["make"]["slug"],
-                "make_name": item["make"]["name"],
-                "model": item["slug"],
-                "model_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
-                "regions": item.get("regions", []),
-            }
-            for item in data["data"]
-        ]
+        items = [map_car_search_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
@@ -334,17 +307,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/by_tire/search/", params)
         total = data["meta"]["count"]
-        items = [
-            {
-                "make": item["make"]["slug"],
-                "make_name": item["make"]["name"],
-                "model": item["slug"],
-                "model_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
-                "regions": item.get("regions", []),
-            }
-            for item in data["data"]
-        ]
+        items = [map_car_search_row(item) for item in data["data"]]
         result = paginated_response(items, total, offset, limit)
         if data["meta"].get("summary"):
             result["summary"] = data["meta"]["summary"]
@@ -388,17 +351,7 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/by_hf_tire/search/", params)
         total = data["meta"]["count"]
-        items = [
-            {
-                "make": item["make"]["slug"],
-                "make_name": item["make"]["name"],
-                "model": item["slug"],
-                "model_name": item["name"],
-                "year_ranges": item.get("year_ranges", []),
-                "regions": item.get("regions", []),
-            }
-            for item in data["data"]
-        ]
+        items = [map_car_search_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})

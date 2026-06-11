@@ -128,7 +128,7 @@ Add to your Zed `settings.json` (Cmd+, → Open Settings):
 
 The MCP server starts automatically when the client launches.
 
-## Available Tools (16)
+## Available Tools (21)
 
 ### Catalog — vehicle lookup
 
@@ -146,9 +146,13 @@ The MCP server starts automatically when the client launches.
 | Tool | Description |
 |------|-------------|
 | `search_by_vehicle` | OEM wheel/tire specs for a vehicle. Requires `region` or `generation`. |
-| `search_by_rim` | Find vehicles compatible with a rim (by bolt pattern, diameter, width). |
-| `search_by_tire` | Find vehicles compatible with a tire size. |
-| `calculate_upsteps` | Plus/minus sizing calculator. |
+| `search_by_rim` | Find vehicles compatible with a rim (exact specs or min/max ranges). |
+| `search_by_tire` | Find vehicles by metric tire size, with speed/load/staggered filters and refinement facets. |
+| `search_by_hf_tire` | Find vehicles by high-flotation (LT) inch size (e.g. 31x10.50R15). |
+| `check_rim_fitment_for_vehicle` | "Will these rims fit my 2020 Civic?" — one-call fitment check. |
+| `check_tire_fitment_for_vehicle` | Same for a metric tire size. |
+| `check_hf_tire_fitment_for_vehicle` | Same for a high-flotation tire size. |
+| `calculate_upsteps` | Plus/minus sizing calculator with width/diameter tolerances. |
 
 ### Classified — product cards for e-commerce
 
@@ -159,6 +163,7 @@ The MCP server starts automatically when the client launches.
 | `find_vehicle_modifications_for_rim` | Drill down into trims for a specific generation. |
 | `find_vehicles_for_tire` | Vehicles that use a specific tire size. |
 | `find_vehicles_for_package` | Vehicles compatible with a rim + tire combo. |
+| `find_vehicle_modifications_for_package` | Drill down into trims for a rim + tire package. |
 
 ### Utility
 
@@ -186,7 +191,7 @@ Pre-built workflow prompts that guide LLM agents through multi-step operations:
 
 ## API Terms of Service
 
-Search tools (`search_by_vehicle`, `search_by_rim`, `search_by_tire`) **must be initiated by real users** per [API Terms of Usage](https://api-demo.wheel-size.com/api-tos/). Do not call in autonomous agent loops. Catalog, classified, and utility tools have no such restriction.
+Search tools (`search_by_vehicle`, `search_by_rim`, `search_by_tire`, `search_by_hf_tire`, and the `check_*_fitment_for_vehicle` checks) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call in autonomous agent loops. Catalog, classified, utility tools and `calculate_upsteps` have no such restriction.
 
 ## Test Questions
 

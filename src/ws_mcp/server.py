@@ -30,10 +30,28 @@ All flows end at list_modifications → search_by_vehicle.
   list_makes → list_models(make) → list_generations(make, model)
   → list_modifications(make, model, generation) → search_by_vehicle
 
+## WORKFLOW — Direct Fitment Check ("will X fit my car?")
+When the user names a SPECIFIC vehicle and a rim/tire spec, answer in ONE call:
+  check_rim_fitment_for_vehicle(make, model, bolt_pattern, rim_diameter, rim_width, year?)
+  check_tire_fitment_for_vehicle(make, model, section_width, aspect_ratio, rim_diameter, year?)
+  check_hf_tire_fitment_for_vehicle(make, model, overall_diameter, section_width, rim_diameter, year?)
+An EMPTY result = no documented fitment. Rows echo start_year/end_year so
+near-misses can be explained. Prefer these over fetching OEM specs and
+comparing manually.
+
 ## WORKFLOW — Reverse Fitment (by rim/tire)
 1. get_spec_metadata(...) → understand if this spec is common/unusual
 2. find_vehicles_for_rim/tire/package(...) → vehicles fitting this spec
-3. find_vehicle_modifications_for_rim(make, model, generation, ...) → drill into trims
+   (sort='fitment' puts closest matches first; diameter_range widens ±N inch)
+3. find_vehicle_modifications_for_rim/package(make, model, generation, ...) → drill into trims
+
+## TIRE SIZE SYSTEMS
+- Metric (225/45R17): search_by_tire, check_tire_fitment_for_vehicle
+- High-flotation inches (31x10.50R15 — trucks/offroad): search_by_hf_tire,
+  check_hf_tire_fitment_for_vehicle
+- search_by_tire responses include 'facets' (car counts per speed_symbol /
+  load_index / region / fitment) — use them to answer follow-ups and offer
+  refinements without extra calls, and 'summary' (runflat/winter counts etc.)
 
 ## CRITICAL RULES
 - ALL slug params (make, model, generation) are lowercase-hyphenated.
@@ -51,7 +69,8 @@ All flows end at list_modifications → search_by_vehicle.
 - Common multi-region combos: Canada=['cdm','usdm'], Australia=['audm','eudm'],
   Russia=['russia','eudm','usdm','jdm'], Israel=['medm','eudm']
 - Catalog tools (list_*) and utility tools: call freely, no restrictions
-- Search tools (search_by_*): user-initiated only per API Terms of Service
+- Search tools (search_by_*, check_*_fitment_for_vehicle): user-initiated only
+  per API Terms of Service (calculate_upsteps is exempt)
 - Classified tools (find_*): for e-commerce product cards, call freely
 - search_by_rim vs find_vehicles_for_rim:
   search_by_rim = direct 1:1 wheel pair matching (exact OEM/documented fitments)
@@ -74,12 +93,14 @@ prompts.register(mcp)
 @mcp.resource("config://status")
 async def server_status():
     """Server configuration status."""
+    from importlib.metadata import version
+
     from ws_mcp.client import API_BASE_URL, API_KEY
 
     return {
         "api_base_url": API_BASE_URL,
         "api_key_configured": bool(API_KEY),
-        "version": "0.1.0",
+        "version": version("wheel-size-mcp"),
     }
 
 

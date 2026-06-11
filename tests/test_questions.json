@@ -1,5 +1,5 @@
 {
-  "_description": "Test question library for MCP server evaluation. Each question tests specific tools/workflows and expected LLM behavior.",
+  "_description": "Test question library for MCP server evaluation. Each question tests specific tools/workflows and expected LLM behavior. The 'coverage_gaps' section tracks questions the system can NOT fully answer yet — move entries out of it as the blocking work (P3-P5) ships. Last coverage audit: 2026-06-11, 20 tools.",
 
   "catalog_flow": {
     "_description": "Questions that exercise the catalog navigation chain (list_makes → list_models → list_years → list_generations → list_modifications)",
@@ -203,8 +203,9 @@
       {
         "id": "rim-04",
         "question": "Will 5x114.3 17x7 ET40 rims fit a 2020 Honda Civic?",
-        "expected_tools": ["search_by_vehicle", "search_by_rim"],
-        "tests": "Combined: needs to compare searched rim against vehicle OEM specs"
+        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "expected_params": {"make": "honda", "model": "civic", "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7, "rim_offset": 40, "year": 2020},
+        "tests": "Direct fitment check — one call, NOT search_by_rim + search_by_vehicle comparison"
       },
       {
         "id": "rim-05",
@@ -237,6 +238,43 @@
         "question": "I found a set of 245/40R18 tires on sale. What cars would they fit?",
         "expected_tools": ["search_by_tire"],
         "tests": "Casual shopping scenario"
+      }
+    ]
+  },
+
+  "direct_fitment_check": {
+    "_description": "One-call fitment verification for a named vehicle (check_* tools, added 2026-06)",
+    "questions": [
+      {
+        "id": "chk-01",
+        "question": "Will 5x112 18x8 ET45 wheels fit a 2019 VW Golf GTI?",
+        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "tests": "Basic direct rim check with year — MCP-side year filtering"
+      },
+      {
+        "id": "chk-02",
+        "question": "Do 235/40R18 tires fit a 2021 Subaru WRX?",
+        "expected_tools": ["check_tire_fitment_for_vehicle"],
+        "expected_params": {"make": "subaru", "model": "wrx", "section_width": 235, "aspect_ratio": 40, "rim_diameter": 18, "year": 2021},
+        "tests": "Direct tire check with year"
+      },
+      {
+        "id": "chk-03",
+        "question": "Will 3x98 13x5 ET35 rims fit a 2020 Honda Civic?",
+        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "tests": "Negative case — empty result must be interpreted as 'no documented fitment', not an error"
+      },
+      {
+        "id": "chk-04",
+        "question": "I have 5x114.3 17x7.5 ET45 wheels. Will they fit a 1999 Toyota Camry? And a 2003 one?",
+        "expected_tools": ["check_rim_fitment_for_vehicle", "check_rim_fitment_for_vehicle"],
+        "tests": "Year near-miss explanation — rows echo start_year/end_year so the LLM can explain which generations match"
+      },
+      {
+        "id": "chk-05",
+        "question": "Какие комплектации Камри 2002 года подходят под диски 5x114.3 17 на 7.5?",
+        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "tests": "Russian language direct check — trim-level granularity of the answer"
       }
     ]
   },
@@ -385,8 +423,8 @@
       {
         "id": "complex-01",
         "question": "I have a 2020 Honda Civic. Can I use wheels from a Toyota Camry?",
-        "expected_tools": ["search_by_vehicle", "search_by_vehicle"],
-        "tests": "Cross-vehicle compatibility check — compare bolt patterns, offsets"
+        "expected_tools": ["search_by_vehicle", "check_rim_fitment_for_vehicle"],
+        "tests": "Cross-vehicle: get Camry OEM rim specs, then direct-check them against the Civic"
       },
       {
         "id": "complex-02",
@@ -415,14 +453,14 @@
       {
         "id": "complex-06",
         "question": "I found 5x114.3 19x8.5 ET35 wheels at a junkyard. Will they fit my 2021 RAV4? What tires should I get?",
-        "expected_tools": ["search_by_vehicle", "get_spec_metadata", "find_tires_for_rim"],
-        "tests": "Compatibility check + tire recommendation for non-OEM wheel"
+        "expected_tools": ["check_rim_fitment_for_vehicle", "find_tires_for_rim"],
+        "tests": "Direct fitment check + tire recommendation for non-OEM wheel"
       },
       {
         "id": "complex-07",
         "question": "Mitshubishi colt 1.3 2011. 185/55x15 and 195/45x17 ?",
-        "expected_tools": ["search_by_vehicle", "get_spec_metadata"],
-        "tests": "Compatibility check + options checking"
+        "expected_tools": ["check_tire_fitment_for_vehicle", "check_tire_fitment_for_vehicle"],
+        "tests": "Typo in make + two tire sizes — direct check per size, explain which fits"
       }
     ]
   },
@@ -519,6 +557,121 @@
         "question": "What are the generations of the BMW 3 Series? Then show me the E46",
         "expected_tools": ["list_generations", "list_modifications"],
         "tests": "Two-step catalog navigation using generation flow"
+      },
+      {
+        "id": "sel-05",
+        "question": "Will these 5x120 19x9 ET30 wheels fit my 2022 BMW M4?",
+        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "tests": "Named vehicle → direct check tool, NOT search_by_rim (no vehicle filter) or find_vehicles_for_rim (e-commerce)"
+      },
+      {
+        "id": "sel-06",
+        "question": "What vehicles run 33x12.5R20 tires?",
+        "expected_tools": ["search_by_hf_tire"],
+        "tests": "Inch-based HF size → HF tool, NOT metric search_by_tire"
+      }
+    ]
+  },
+
+  "coverage_gaps": {
+    "_description": "Questions the system can NOT fully answer yet. Two groups: 'pending' = planned MCP work (P3-P5) or unwrapped API endpoints; 'out_of_scope' = the Wheel Fitment API has no such data. For all of these the correct LLM behavior is to answer with the closest available tool AND state the limitation honestly — never fabricate.",
+    "pending": [
+      {
+        "id": "gap-01",
+        "question": "Show me all BMW trims that fit a 5x120 19x8.5 ET35 rim with 255/35R19 tires",
+        "blocked_by": "P3 — /v2/classified/by_package/search/modifications/ not wrapped (rim-only drill-down exists)",
+        "workaround": "find_vehicle_modifications_for_rim ignores the tire part",
+        "tests": "Package drill-down parity"
+      },
+      {
+        "id": "gap-02",
+        "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",
+        "blocked_by": "P4 — classified 'sort' param (name/fitment/load) not exposed; tools send legacy 'ordering'",
+        "tests": "Classified sort parameter"
+      },
+      {
+        "id": "gap-03",
+        "question": "What tires fit my 17-inch rim? Also show options if I went an inch up or down",
+        "blocked_by": "P4 — 'diameter_range' (±N inch widening) not exposed on classified tools",
+        "tests": "Diameter range widening"
+      },
+      {
+        "id": "gap-04",
+        "question": "What cars use 225/45R17 tires with at least a V speed rating and load index 91+?",
+        "blocked_by": "P5 — speed_symbol/load_index filters and meta.facets not exposed on search_by_tire",
+        "workaround": "search_by_tire returns vehicles but cannot filter by speed/load; per-vehicle indices visible via search_by_vehicle full detail",
+        "tests": "Tire performance-rating filters"
+      },
+      {
+        "id": "gap-05",
+        "question": "Which cars run a staggered setup on 255/35R19?",
+        "blocked_by": "P5 — 'fitment' (staggered/square) filter not exposed on search_by_tire",
+        "tests": "Staggered/square fitment filter"
+      },
+      {
+        "id": "gap-06",
+        "question": "Find vehicles that fit 18 or 19 inch wheels, width 8-9, ET between 30 and 45",
+        "blocked_by": "P5 — min/max range params (rim_diameter/width/offset) not exposed on search_by_rim",
+        "tests": "Range-based rim search"
+      },
+      {
+        "id": "gap-07",
+        "question": "What's the biggest wheel upgrade for my car keeping overall tire diameter within 2%?",
+        "blocked_by": "P5 — s_max/do_max tolerance params not exposed on calculate_upsteps",
+        "workaround": "calculate_upsteps with default tolerances; LLM filters options by the 'difference' field",
+        "tests": "Upstep tolerance control (complex-05 is only partially answerable today)"
+      },
+      {
+        "id": "gap-08",
+        "question": "Show me BMW X5 trims with more than 300 horsepower",
+        "blocked_by": "P5 — horsepower/horsepower_min/max not exposed on list_modifications",
+        "workaround": "list_modifications returns all trims; LLM filters by the power field client-side",
+        "tests": "Horsepower filtering"
+      },
+      {
+        "id": "gap-09",
+        "question": "Покажи модели Тойоты с переводом названий на русский",
+        "blocked_by": "P5 — 'lang' param not exposed on catalog tools",
+        "tests": "Localized catalog names"
+      },
+      {
+        "id": "gap-10",
+        "question": "What bolt patterns exist for wheels with 5 stud holes and PCD around 114 mm?",
+        "blocked_by": "deferred — /v2/by_rim/bp/ lister (stud_holes/pcd filters) not wrapped",
+        "workaround": "get_spec_metadata population stats partially cover this",
+        "tests": "Bolt pattern discovery by stud count"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "id": "oos-01",
+        "question": "Which wheel brand should I buy for my Golf — BBS or OZ?",
+        "reason": "API has no aftermarket brand/product catalog, prices, or availability",
+        "expected_behavior": "Answer fitment specs the car needs; decline brand shopping advice as out of data scope"
+      },
+      {
+        "id": "oos-02",
+        "question": "Will 33-inch tires fit my Tacoma with a 2-inch lift and no rubbing?",
+        "reason": "Database documents OEM/optional fitments only — no suspension modification or clearance modeling",
+        "expected_behavior": "Show documented HF fitments for stock setup; state that lifted-clearance questions are beyond the data"
+      },
+      {
+        "id": "oos-03",
+        "question": "Decode VIN WBA3A5C58DF123456 and tell me its wheel specs",
+        "reason": "No VIN decoding endpoint in the Wheel Fitment API (separate product)",
+        "expected_behavior": "Ask for make/model/year instead"
+      },
+      {
+        "id": "oos-04",
+        "question": "Are 20-inch wheels with ET20 street-legal in Germany?",
+        "reason": "No legal/homologation data (TÜV, ABE) in the API",
+        "expected_behavior": "Provide fitment facts; defer legal questions to local regulations"
+      },
+      {
+        "id": "oos-05",
+        "question": "How much do OEM Camry wheels weigh and what do replicas cost?",
+        "reason": "Weight estimates exist (get_spec_metadata est_weight_kg) but prices do not",
+        "expected_behavior": "Give the weight estimate with its 'cast aluminum estimate' caveat; decline pricing"
       }
     ]
   }

@@ -72,6 +72,20 @@
         "expected_tools": ["list_generations"],
         "expected_params": {"make": "porsche", "model": "911"},
         "tests": "Generation flow for long-running model"
+      },
+      {
+        "id": "cat-11",
+        "question": "Show me BMW X5 trims with more than 300 horsepower",
+        "expected_tools": ["list_modifications"],
+        "expected_params": {"make": "bmw", "model": "x5", "horsepower_min": 300},
+        "tests": "Horsepower filtering (was gap-08, unblocked by P5)"
+      },
+      {
+        "id": "cat-12",
+        "question": "Покажи модели Тойоты с переводом названий на русский",
+        "expected_tools": ["list_models"],
+        "expected_params": {"make": "toyota", "lang": "ru"},
+        "tests": "Localized catalog names via lang (was gap-09, unblocked by P5)"
       }
     ]
   },
@@ -213,6 +227,13 @@
         "expected_tools": ["get_spec_metadata"],
         "expected_params": {"rim_diameter": 18, "rim_width": 8, "rim_offset": 35},
         "tests": "Metadata query — population stats and hints"
+      },
+      {
+        "id": "rim-06",
+        "question": "Find vehicles that fit 18 or 19 inch wheels, width 8-9, ET between 30 and 45, 5x114.3",
+        "expected_tools": ["search_by_rim"],
+        "expected_params": {"rim_diameter_min": 18, "rim_diameter_max": 19, "rim_width_min": 8, "rim_width_max": 9, "rim_offset_min": 30, "rim_offset_max": 45},
+        "tests": "Range-based rim search (was gap-06, unblocked by P5)"
       }
     ]
   },
@@ -238,6 +259,26 @@
         "question": "I found a set of 245/40R18 tires on sale. What cars would they fit?",
         "expected_tools": ["search_by_tire"],
         "tests": "Casual shopping scenario"
+      },
+      {
+        "id": "tire-04",
+        "question": "What cars use 225/45R17 tires with at least a V speed rating and load index 91+?",
+        "expected_tools": ["search_by_tire"],
+        "expected_params": {"speed_symbol_min": "V", "load_index_min": 91},
+        "tests": "Performance-rating filters (was gap-04, unblocked by P5)"
+      },
+      {
+        "id": "tire-05",
+        "question": "Which cars run a staggered setup on 255/35R19?",
+        "expected_tools": ["search_by_tire"],
+        "expected_params": {"fitment": "staggered"},
+        "tests": "Staggered/square filter (was gap-05, unblocked by P5)"
+      },
+      {
+        "id": "tire-06",
+        "question": "What cars use 225/45R17 tires? What speed ratings do they need?",
+        "expected_tools": ["search_by_tire"],
+        "tests": "Facets usage — answer the second part from facets.speed_symbol without extra calls"
       }
     ]
   },
@@ -332,6 +373,13 @@
         "question": "What tire size should I use if I upgrade from 17\" to 19\" wheels on my car with 225/45R17?",
         "expected_tools": ["calculate_upsteps"],
         "tests": "Implied plus-2 sizing request"
+      },
+      {
+        "id": "up-04",
+        "question": "What's the biggest wheel upgrade for 225/50R17 on 7Jx17 ET40 keeping overall tire diameter within 2%?",
+        "expected_tools": ["calculate_upsteps"],
+        "expected_params": {"do_max": 2},
+        "tests": "Tight diameter tolerance via do_max (was gap-07, unblocked by P5)"
       }
     ]
   },
@@ -596,45 +644,6 @@
   "coverage_gaps": {
     "_description": "Questions the system can NOT fully answer yet. Two groups: 'pending' = planned MCP work (P3-P5) or unwrapped API endpoints; 'out_of_scope' = the Wheel Fitment API has no such data. For all of these the correct LLM behavior is to answer with the closest available tool AND state the limitation honestly — never fabricate.",
     "pending": [
-      {
-        "id": "gap-04",
-        "question": "What cars use 225/45R17 tires with at least a V speed rating and load index 91+?",
-        "blocked_by": "P5 — speed_symbol/load_index filters and meta.facets not exposed on search_by_tire",
-        "workaround": "search_by_tire returns vehicles but cannot filter by speed/load; per-vehicle indices visible via search_by_vehicle full detail",
-        "tests": "Tire performance-rating filters"
-      },
-      {
-        "id": "gap-05",
-        "question": "Which cars run a staggered setup on 255/35R19?",
-        "blocked_by": "P5 — 'fitment' (staggered/square) filter not exposed on search_by_tire",
-        "tests": "Staggered/square fitment filter"
-      },
-      {
-        "id": "gap-06",
-        "question": "Find vehicles that fit 18 or 19 inch wheels, width 8-9, ET between 30 and 45",
-        "blocked_by": "P5 — min/max range params (rim_diameter/width/offset) not exposed on search_by_rim",
-        "tests": "Range-based rim search"
-      },
-      {
-        "id": "gap-07",
-        "question": "What's the biggest wheel upgrade for my car keeping overall tire diameter within 2%?",
-        "blocked_by": "P5 — s_max/do_max tolerance params not exposed on calculate_upsteps",
-        "workaround": "calculate_upsteps with default tolerances; LLM filters options by the 'difference' field",
-        "tests": "Upstep tolerance control (complex-05 is only partially answerable today)"
-      },
-      {
-        "id": "gap-08",
-        "question": "Show me BMW X5 trims with more than 300 horsepower",
-        "blocked_by": "P5 — horsepower/horsepower_min/max not exposed on list_modifications",
-        "workaround": "list_modifications returns all trims; LLM filters by the power field client-side",
-        "tests": "Horsepower filtering"
-      },
-      {
-        "id": "gap-09",
-        "question": "Покажи модели Тойоты с переводом названий на русский",
-        "blocked_by": "P5 — 'lang' param not exposed on catalog tools",
-        "tests": "Localized catalog names"
-      },
       {
         "id": "gap-10",
         "question": "What bolt patterns exist for wheels with 5 stud holes and PCD around 114 mm?",

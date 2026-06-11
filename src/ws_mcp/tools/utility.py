@@ -212,6 +212,10 @@ def register(mcp: FastMCP):
             str | None,
             Field(description="Bolt pattern (e.g. '5x114.3'). Narrows population stats."),
         ] = None,
+        cb: Annotated[
+            float | None,
+            Field(ge=52.1, le=225, description="Centre bore in mm (e.g. 71.6). Passed to suggested classified params."),
+        ] = None,
         section_width: Annotated[
             float | None,
             Field(
@@ -267,6 +271,7 @@ def register(mcp: FastMCP):
             "rim_width": rim_width,
             "rim_offset": rim_offset,
             "bolt_pattern": bolt_pattern,
+            "cb": cb,
             "section_width": section_width,
             "aspect_ratio": aspect_ratio,
             "overall_diameter": overall_diameter,

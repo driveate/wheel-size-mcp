@@ -218,6 +218,54 @@ async def test_check_tire_fitment_for_vehicle(call_tool):
     assert "engine" in item
 
 
+async def test_search_by_tire_facets_live(call_tool):
+    """225/45R17 — facets and summary must come back from the live API."""
+    data = await call_tool("search_by_tire", {
+        "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
+    })
+    assert data["total"] > 0
+    assert "facets" in data
+    assert "speed_symbol" in data["facets"]
+    assert "fitment" in data["facets"]
+    assert "summary" in data
+
+
+async def test_search_by_tire_speed_filter_live(call_tool):
+    """speed_symbol filter narrows the result set."""
+    base = await call_tool("search_by_tire", {
+        "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
+    })
+    filtered = await call_tool("search_by_tire", {
+        "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
+        "speed_symbol": ["H"],
+    })
+    assert 0 < filtered["total"] < base["total"]
+
+
+async def test_search_by_rim_range_live(call_tool):
+    """Range search: 18-19 inch diameter must return at least as many results as exact 18."""
+    exact = await call_tool("search_by_rim", {
+        "bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8,
+    })
+    ranged = await call_tool("search_by_rim", {
+        "bolt_pattern": "5x114.3",
+        "rim_diameter_min": 18, "rim_diameter_max": 19,
+        "rim_width_min": 8, "rim_width_max": 8,
+    })
+    assert ranged["total"] >= exact["total"] > 0
+
+
+async def test_list_modifications_horsepower_live(call_tool):
+    """horsepower_min filter keeps only powerful trims."""
+    data = await call_tool("list_modifications", {
+        "make": "bmw", "model": "x5", "year": 2020, "horsepower_min": 400,
+    })
+    for m in data["modifications"]:
+        hp = (m.get("engine") or {}).get("power", {}).get("hp")
+        if hp is not None:
+            assert hp >= 400
+
+
 async def test_search_by_hf_tire(call_tool):
     """31x10.50R15 — classic offroad size, known data in the local DB."""
     data = await call_tool("search_by_hf_tire", {

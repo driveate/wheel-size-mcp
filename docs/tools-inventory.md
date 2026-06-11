@@ -54,6 +54,9 @@
 |----------|-----|----------|
 | `year` | `int?` | Filter by year (e.g. 2024) |
 | `region` | `list[str]?` | Region slug(s) (e.g. ['usdm', 'jdm']). Filter makes sold in these regions. |
+| `brands` | `list[str]?` | Only these make slugs (e.g. ['toyota', 'nissan']). For curated storefronts. |
+| `brands_exclude` | `list[str]?` | Exclude these make slugs |
+| `lang` | `str?` | Translate names (e.g. 'ru'). name_en keeps the English original. |
 
 ---
 
@@ -75,6 +78,7 @@
 | `make` | `str` | Make slug (e.g. 'toyota'). Use list_makes to find valid slugs. |
 | `year` | `int?` | Filter by year |
 | `region` | `list[str]?` | Region slug(s) (e.g. ['usdm']). Filter models sold in these regions. |
+| `lang` | `str?` | Translate names (e.g. 'ru'). name_en keeps the English original. |
 
 ---
 
@@ -141,6 +145,10 @@
 | `fuel` | `str?` | Fuel type filter (e.g. 'diesel', 'electric', 'hybrid', 'petrol') |
 | `trim` | `str?` | Fuzzy engine/trim name search (e.g. '2.0T', 'V6') |
 | `trim_level` | `str?` | Case-insensitive trim level (e.g. 'EX-L', 'Touring', 'Sport') |
+| `horsepower` | `float?` | Horsepower, ±2.7 hp band (0–2000, e.g. 150) |
+| `horsepower_min` | `float?` | Minimum horsepower (e.g. 300) |
+| `horsepower_max` | `float?` | Maximum horsepower |
+| `lang` | `str?` | Translate names (e.g. 'ru') |
 
 ---
 
@@ -200,6 +208,7 @@
 | `modification` | `str?` | Modification slug from list_modifications. Alternative to region. |
 | `region` | `str?` | Single region slug (e.g. 'usdm'). Only ONE region allowed here. |
 | `detail_level` | `"concise" \| "full"` | 'concise' = key specs only, 'full' = all wheel/tire details (default: concise) |
+| `lang` | `str?` | Translate make/model/region names (e.g. 'ru') |
 | `limit` | `int` | Results per page (1–50, default 20) |
 | `offset` | `int` | Pagination offset (default 0) |
 
@@ -232,13 +241,20 @@
 | Параметр | Тип | Описание |
 |----------|-----|----------|
 | `bolt_pattern` | `str` | Bolt pattern (e.g. '5x114.3') |
-| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
-| `rim_width` | `float` | Rim width in inches (2–14) |
+| `rim_diameter` | `float?` | Exact rim diameter in inches (8–26). Либо exact, либо min+max |
+| `rim_width` | `float?` | Exact rim width in inches (2–14). Либо exact, либо min+max |
 | `rim_offset` | `int?` | Rim offset in mm (-150–150) |
+| `rim_diameter_min/max` | `float?` | Диапазонный поиск по диаметру (8–26) |
+| `rim_width_min/max` | `float?` | Диапазонный поиск по ширине (2–14) |
+| `rim_offset_min/max` | `int?` | Диапазонный поиск по вылету (-150–150) |
+| `cb`, `cb_min/max` | `float?` | Centre bore in mm (52.1–225), точно или диапазоном |
+| `fd` | `float?` | Wheel fastener thread diameter in mm (9.525–18) |
 | `region` | `list[str]?` | Region slug(s) |
 | `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
+
+**Валидация в коде**: на каждое измерение (diameter/width обязательны, offset/cb опциональны) — либо точное значение, либо полная пара min+max (не оба сразу, min ≤ max); иначе `ToolError` с подсказкой.
 
 ---
 
@@ -261,10 +277,17 @@
 | `section_width` | `int` | Tire section width in mm (115–365, e.g. 225) |
 | `aspect_ratio` | `int` | Tire aspect ratio (25–95, e.g. 55) |
 | `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `speed_symbol` | `list[str]?` | Speed rating(s), OR-combined (L…Y, e.g. ['V', 'W']) |
+| `speed_symbol_min/max` | `str?` | Диапазон по speed rating (e.g. min='V' → V и быстрее) |
+| `load_index` | `list[int]?` | Load index(es), OR-combined (e.g. [91, 94]) |
+| `load_index_min/max` | `int?` | Диапазон по load index (0–200) |
+| `fitment` | `"square" \| "staggered"?` | square = одинаковые оси, staggered = зад отличается |
 | `region` | `list[str]?` | Region slug(s) |
 | `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
+
+**Ответ дополнительно содержит** `facets` (счётчики машин по speed_symbol/load_index/region/fitment — готовое меню уточнений; опции каждого фасета обрезаются до 50 записей с пометкой `truncated`) и `summary` (фичи runflat/winter/extra_load + физические данные шины).
 
 ---
 
@@ -437,6 +460,8 @@
 | `section_width` | `int` | OE tire section width in mm (115–365) |
 | `aspect_ratio` | `int` | OE tire aspect ratio (25–95) |
 | `steps` | `int?` | Plus/minus steps (-3–3, default +2) |
+| `s_max` | `int?` | Max section width difference, % (0–25, default 10) |
+| `do_max` | `int?` | Max overall diameter difference, % (0–15, default 5). 2–3 = сохранить точность спидометра |
 
 ---
 
@@ -670,6 +695,7 @@
 | `bolt_pattern` | `str?` | Bolt pattern (e.g. '5x114.3'). Narrows population stats. |
 | `section_width` | `float?` | Метрические шины: мм (95–405, e.g. 225). HF (задан `overall_diameter`): дюймы (4.5–14, e.g. 12.5) |
 | `aspect_ratio` | `int?` | Tire aspect ratio (20–95, e.g. 45) |
+| `cb` | `float?` | Centre bore in mm (52.1–225, e.g. 71.6). Прокидывается в suggested classified params. |
 | `overall_diameter` | `float?` | Overall tire diameter in inches (20–50, e.g. 33). HF mode. |
 
 **MCP-side логика (`_build_hints`)** генерирует текстовые подсказки для LLM:

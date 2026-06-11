@@ -22,6 +22,39 @@ from ws_mcp.tools._annotations import SEARCH_ANNOTATIONS
 _YEAR_FETCH_CAP = 200
 _API_PAGE_SIZE = 50
 
+# Max options kept per facet to respect the ~25K token response cap
+_FACET_CAP = 50
+
+_SPEED_SYMBOLS = ["L", "M", "N", "P", "Q", "R", "S", "T", "U", "H", "V", "Z", "W", "Y"]
+_SpeedSymbol = Literal["L", "M", "N", "P", "Q", "R", "S", "T", "U", "H", "V", "Z", "W", "Y"]
+
+
+def _compact_facets(meta: dict) -> dict:
+    """Compact meta.facets: keep active + value→count options, cap entries per facet."""
+    out = {}
+    for name, facet in (meta.get("facets") or {}).items():
+        options = facet.get("options") or {}
+        entry: dict = {"active": facet.get("active", [])}
+        if len(options) > _FACET_CAP:
+            entry["options"] = dict(list(options.items())[:_FACET_CAP])
+            entry["truncated"] = f"top {_FACET_CAP} of {len(options)}"
+        else:
+            entry["options"] = options
+        out[name] = entry
+    return out
+
+
+def _check_dimension(name: str, exact, lo, hi, required: bool = False) -> None:
+    """Validate an exact-or-range dimension: exclusive, paired, ordered."""
+    if exact is not None and (lo is not None or hi is not None):
+        raise ToolError(f"Use either {name} or the {name}_min/{name}_max range, not both.")
+    if (lo is None) != (hi is None):
+        raise ToolError(f"Range search needs both {name}_min and {name}_max.")
+    if lo is not None and lo > hi:
+        raise ToolError(f"{name}_min must be <= {name}_max.")
+    if required and exact is None and lo is None:
+        raise ToolError(f"Provide {name}, or both {name}_min and {name}_max.")
+
 
 def _year_in_range(item: dict, year: int) -> bool:
     """True if the modification's production range covers the year (open ends pass)."""
@@ -109,6 +142,10 @@ def register(mcp: FastMCP):
         detail_level: Annotated[
             Literal["concise", "full"], Field(description="'concise' = key specs only, 'full' = all wheel/tire details")
         ] = "concise",
+        lang: Annotated[
+            str | None,
+            Field(description="Translate make/model/region names (e.g. 'ru')."),
+        ] = None,
         limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
         offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
     ) -> dict:
@@ -150,7 +187,7 @@ def register(mcp: FastMCP):
             "generation": normalize_slug(generation) if generation else None,
             "modification": normalize_slug(modification) if modification else None,
             "region": normalize_slug(region) if region else None,
-            "limit": limit, "offset": offset,
+            "lang": lang, "limit": limit, "offset": offset,
         }
         data = await api.get("/v2/search/by_model/", params)
         total = data["meta"]["count"]
@@ -160,9 +197,30 @@ def register(mcp: FastMCP):
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
     async def search_by_rim(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
-        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 18)")],
-        rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches (e.g. 8)")],
+        rim_diameter: Annotated[
+            float | None, Field(ge=8, le=26, description="Exact rim diameter in inches (e.g. 18)")
+        ] = None,
+        rim_width: Annotated[
+            float | None, Field(ge=2, le=14, description="Exact rim width in inches (e.g. 8)")
+        ] = None,
         rim_offset: Annotated[int | None, Field(ge=-150, le=150, description="Rim offset in mm")] = None,
+        rim_diameter_min: Annotated[
+            float | None, Field(ge=8, le=26, description="Range search: min diameter (use with _max)")
+        ] = None,
+        rim_diameter_max: Annotated[float | None, Field(ge=8, le=26, description="Range search: max diameter")] = None,
+        rim_width_min: Annotated[
+            float | None, Field(ge=2, le=14, description="Range search: min width (use with _max)")
+        ] = None,
+        rim_width_max: Annotated[float | None, Field(ge=2, le=14, description="Range search: max width")] = None,
+        rim_offset_min: Annotated[int | None, Field(ge=-150, le=150, description="Range search: min offset")] = None,
+        rim_offset_max: Annotated[int | None, Field(ge=-150, le=150, description="Range search: max offset")] = None,
+        cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore in mm (e.g. 64.1)")] = None,
+        cb_min: Annotated[float | None, Field(ge=52.1, le=225, description="Range search: min centre bore")] = None,
+        cb_max: Annotated[float | None, Field(ge=52.1, le=225, description="Range search: max centre bore")] = None,
+        fd: Annotated[
+            float | None,
+            Field(ge=9.525, le=18, description="Wheel fastener thread diameter in mm (e.g. 12 for M12)"),
+        ] = None,
         region: Annotated[
             list[str] | None,
             Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
@@ -178,8 +236,10 @@ def register(mcp: FastMCP):
         in the database as an OEM or documented fitment. Does NOT calculate
         whether the rim would physically fit based on wheel housing geometry.
 
-        Requires bolt_pattern, rim_diameter, and rim_width.
-        Add rim_offset for more precise results.
+        Diameter and width accept either an exact value (rim_diameter,
+        rim_width) or a min/max range pair — e.g. "18-19 inch, ET30-45" →
+        rim_diameter_min=18, rim_diameter_max=19, rim_offset_min=30,
+        rim_offset_max=45. One of exact or range is required per dimension.
 
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a rim compatibility search. Do not call in autonomous loops.
@@ -187,9 +247,17 @@ def register(mcp: FastMCP):
         For e-commerce product cards, use find_vehicles_for_rim instead —
         it uses geometric backspace calculations for broader, physics-based matching.
         """
+        _check_dimension("rim_diameter", rim_diameter, rim_diameter_min, rim_diameter_max, required=True)
+        _check_dimension("rim_width", rim_width, rim_width_min, rim_width_max, required=True)
+        _check_dimension("rim_offset", rim_offset, rim_offset_min, rim_offset_max)
+        _check_dimension("cb", cb, cb_min, cb_max)
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
             "rim_width": rim_width, "rim_offset": rim_offset,
+            "rim_diameter_min": rim_diameter_min, "rim_diameter_max": rim_diameter_max,
+            "rim_width_min": rim_width_min, "rim_width_max": rim_width_max,
+            "rim_offset_min": rim_offset_min, "rim_offset_max": rim_offset_max,
+            "cb": cb, "cb_min": cb_min, "cb_max": cb_max, "fd": fd,
             "region": normalize_regions(region), "mode": mode,
             "limit": limit, "offset": offset,
         }
@@ -213,6 +281,26 @@ def register(mcp: FastMCP):
         section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm (e.g. 225)")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio (e.g. 55)")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
+        speed_symbol: Annotated[
+            list[_SpeedSymbol] | None,
+            Field(description="Speed rating(s), OR-combined (e.g. ['V', 'W']). Counts in facets.speed_symbol."),
+        ] = None,
+        speed_symbol_min: Annotated[
+            _SpeedSymbol | None, Field(description="Minimum speed rating (e.g. 'V' = V or faster)")
+        ] = None,
+        speed_symbol_max: Annotated[_SpeedSymbol | None, Field(description="Maximum speed rating")] = None,
+        load_index: Annotated[
+            list[int] | None,
+            Field(description="Load index(es), OR-combined (e.g. [91, 94]). Counts in facets.load_index."),
+        ] = None,
+        load_index_min: Annotated[
+            int | None, Field(ge=0, le=200, description="Minimum load index (e.g. 91)")
+        ] = None,
+        load_index_max: Annotated[int | None, Field(ge=0, le=200, description="Maximum load index")] = None,
+        fitment: Annotated[
+            Literal["square", "staggered"] | None,
+            Field(description="square = same size all around, staggered = rear differs from front"),
+        ] = None,
         region: Annotated[
             list[str] | None,
             Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
@@ -223,6 +311,11 @@ def register(mcp: FastMCP):
     ) -> dict:
         """Find vehicles compatible with a given tire size (metric).
 
+        The response includes 'facets' (per-value car counts for speed_symbol,
+        load_index, region, fitment — use them to offer refinements) and
+        'summary' (feature counts like runflat/winter + physical tire data).
+        Echo a facet value back as a filter to drill down.
+
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a tire compatibility search. Do not call in autonomous loops.
 
@@ -232,6 +325,10 @@ def register(mcp: FastMCP):
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,
             "rim_diameter": rim_diameter,
+            "speed_symbol": speed_symbol, "speed_symbol_min": speed_symbol_min,
+            "speed_symbol_max": speed_symbol_max,
+            "load_index": load_index, "load_index_min": load_index_min,
+            "load_index_max": load_index_max, "fitment": fitment,
             "region": normalize_regions(region), "mode": mode,
             "limit": limit, "offset": offset,
         }
@@ -248,7 +345,13 @@ def register(mcp: FastMCP):
             }
             for item in data["data"]
         ]
-        return paginated_response(items, total, offset, limit)
+        result = paginated_response(items, total, offset, limit)
+        if data["meta"].get("summary"):
+            result["summary"] = data["meta"]["summary"]
+        facets = _compact_facets(data["meta"])
+        if facets:
+            result["facets"] = facets
+        return result
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
     async def search_by_hf_tire(
@@ -442,11 +545,23 @@ def register(mcp: FastMCP):
         section_width: Annotated[int, Field(ge=115, le=365, description="OE tire section width in mm")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="OE tire aspect ratio")],
         steps: Annotated[int | None, Field(ge=-3, le=3, description="Plus/minus steps (default +2)")] = None,
+        s_max: Annotated[
+            int | None,
+            Field(ge=0, le=25, description="Max section width difference, % (default 10)"),
+        ] = None,
+        do_max: Annotated[
+            int | None,
+            Field(
+                ge=0, le=15,
+                description="Max overall diameter difference, % (default 5). Use 2-3 to keep speedo accurate.",
+            ),
+        ] = None,
     ) -> dict:
         """Calculate plus/minus sizing alternatives for a wheel/tire combo.
 
         Given OEM wheel specs, returns safe replacement sizes at different
         plus/minus levels (e.g. +1, +2 = larger rim with lower-profile tire).
+        Tighten do_max for "without changing the overall diameter" requests.
 
         This is a calculator tool — can be called freely without user initiation.
         """
@@ -454,6 +569,7 @@ def register(mcp: FastMCP):
             "rim_diameter": rim_diameter, "rim_width": rim_width,
             "rim_offset": rim_offset, "section_width": section_width,
             "aspect_ratio": aspect_ratio, "steps": steps,
+            "s_max": s_max, "do_max": do_max,
         }
         data = await api.get("/v2/upsteps/", params)
         return {

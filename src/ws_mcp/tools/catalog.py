@@ -22,6 +22,18 @@ def register(mcp: FastMCP):
             list[str] | None,
             Field(description="Region slug(s) (e.g. ['usdm', 'jdm']). Filter makes sold in these regions."),
         ] = None,
+        brands: Annotated[
+            list[str] | None,
+            Field(description="Only these make slugs (e.g. ['toyota', 'nissan']). For curated storefronts."),
+        ] = None,
+        brands_exclude: Annotated[
+            list[str] | None,
+            Field(description="Exclude these make slugs (e.g. ['geely', 'great-wall'])."),
+        ] = None,
+        lang: Annotated[
+            str | None,
+            Field(description="Translate names (e.g. 'ru'). name_en keeps the English original."),
+        ] = None,
     ) -> dict:
         """List all vehicle manufacturers (makes).
 
@@ -32,12 +44,22 @@ def register(mcp: FastMCP):
 
         After getting a make slug, use list_models to find models.
         """
-        params = {"year": year, "region": normalize_regions(region)}
+        params = {
+            "year": year, "region": normalize_regions(region),
+            "brands": ",".join(normalize_slug(b) for b in brands) if brands else None,
+            "brands_exclude": ",".join(normalize_slug(b) for b in brands_exclude) if brands_exclude else None,
+            "lang": lang,
+        }
         data = await api.get("/v2/makes/", params)
         return {
             "total": data["meta"]["count"],
             "makes": [
-                {"slug": m["slug"], "name": m["name"], "regions": m.get("regions", [])}
+                {
+                    "slug": m["slug"],
+                    "name": m["name"],
+                    **({"name_en": m.get("name_en")} if lang else {}),
+                    "regions": m.get("regions", []),
+                }
                 for m in data["data"]
             ],
         }
@@ -50,6 +72,10 @@ def register(mcp: FastMCP):
             list[str] | None,
             Field(description="Region slug(s) (e.g. ['usdm']). Filter models sold in these regions."),
         ] = None,
+        lang: Annotated[
+            str | None,
+            Field(description="Translate names (e.g. 'ru'). name_en keeps the English original."),
+        ] = None,
     ) -> dict:
         """List models for a given make.
 
@@ -59,7 +85,10 @@ def register(mcp: FastMCP):
 
         After getting a model slug, use list_years or list_generations next.
         """
-        params = {"make": normalize_slug(make), "year": year, "region": normalize_regions(region)}
+        params = {
+            "make": normalize_slug(make), "year": year,
+            "region": normalize_regions(region), "lang": lang,
+        }
         data = await api.get("/v2/models/", params)
         return {
             "total": data["meta"]["count"],
@@ -67,6 +96,7 @@ def register(mcp: FastMCP):
                 {
                     "slug": m["slug"],
                     "name": m["name"],
+                    **({"name_en": m.get("name_en")} if lang else {}),
                     "year_ranges": m.get("year_ranges", []),
                     "regions": m.get("regions", []),
                 }
@@ -166,11 +196,27 @@ def register(mcp: FastMCP):
             str | None,
             Field(description="Case-insensitive trim level (e.g. 'EX-L', 'Touring', 'Sport')"),
         ] = None,
+        horsepower: Annotated[
+            float | None,
+            Field(ge=0, le=2000, description="Horsepower (±2.7 hp band, e.g. 150)"),
+        ] = None,
+        horsepower_min: Annotated[
+            float | None, Field(ge=0, le=2000, description="Minimum horsepower (e.g. 300)")
+        ] = None,
+        horsepower_max: Annotated[
+            float | None, Field(ge=0, le=2000, description="Maximum horsepower")
+        ] = None,
+        lang: Annotated[
+            str | None,
+            Field(description="Translate names (e.g. 'ru'). name_en keeps the English original."),
+        ] = None,
     ) -> dict:
         """List modifications (trims) for a specific vehicle.
 
         Returns trim names, engine specs, and production years.
         One of year or generation is required.
+        Filter by power via horsepower (exact ±2.7 hp) or horsepower_min/max
+        (e.g. "trims over 300 hp" → horsepower_min=300).
         After getting a modification slug, use search_by_vehicle for fitment data.
         """
         params = {
@@ -182,6 +228,10 @@ def register(mcp: FastMCP):
             "fuel": fuel,
             "trim": trim,
             "trim_level": trim_level,
+            "horsepower": horsepower,
+            "horsepower_min": horsepower_min,
+            "horsepower_max": horsepower_max,
+            "lang": lang,
         }
         data = await api.get("/v2/modifications/", params)
         return {

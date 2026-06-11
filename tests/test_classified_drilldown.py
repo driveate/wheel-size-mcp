@@ -86,3 +86,48 @@ async def test_drilldown_open_end_year_renders_present(captured):
     captured["rows"] = [_row(production_end_year=None)]
     data = await _call("find_vehicle_modifications_for_package", PACKAGE_ARGS)
     assert data["results"][0]["years"] == "2019-present"
+
+
+RIM_SEARCH_ARGS = {
+    "bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8, "rim_offset": 35,
+}
+
+
+async def test_classified_sends_sort_not_ordering(captured):
+    """The classified sort values (name/fitment/load) belong to the 'sort' param;
+    sending them as 'ordering' makes the API reject the request."""
+    captured["rows"] = []
+    await _call("find_vehicles_for_rim", {**RIM_SEARCH_ARGS, "sort": "fitment"})
+    params = captured["calls"][0]["params"]
+    assert params["sort"] == "fitment"
+    assert "ordering" not in params
+
+
+async def test_classified_geometry_params_passthrough(captured):
+    captured["rows"] = []
+    await _call("find_tires_for_rim", {
+        **RIM_SEARCH_ARGS,
+        "fd": 12, "diameter_range": 1, "fs_poke": 10, "bs_push": 5,
+        "od_tolerance": 0.02, "sort": "load",
+    })
+    params = captured["calls"][0]["params"]
+    assert params["fd"] == 12
+    assert params["diameter_range"] == 1
+    assert params["fs_poke"] == 10
+    assert params["bs_push"] == 5
+    assert params["od_tolerance"] == 0.02
+    assert params["sort"] == "load"
+
+
+async def test_package_search_accepts_geometry_params(captured):
+    captured["rows"] = []
+    await _call("find_vehicles_for_package", {
+        **RIM_SEARCH_ARGS,
+        "section_width": 225, "aspect_ratio": 45,
+        "fd": 14, "fs_poke": 20, "diameter_range": 2, "sort": "fitment",
+    })
+    params = captured["calls"][0]["params"]
+    assert params["fd"] == 14
+    assert params["fs_poke"] == 20
+    assert params["diameter_range"] == 2
+    assert params["sort"] == "fitment"

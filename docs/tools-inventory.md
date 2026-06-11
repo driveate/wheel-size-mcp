@@ -442,6 +442,25 @@
 
 ## Classified (`tools/classified.py`) — 6 тулов
 
+### Общие геометрические параметры
+
+Все rim/package classified-тулы (кроме `find_vehicles_for_tire`) принимают единый набор геометрических фильтров — в таблицах тулов он обозначен строкой «+ общие геометрические параметры»:
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
+| `fd` | `float?` | Wheel fastener thread diameter in mm (9.525–18, e.g. 12 for M12) |
+| `fs_poke` | `int?` | Frontspace poke tolerance in mm (0–150, default 2) |
+| `bs_push` | `int?` | Backspace push tolerance in mm (0–150, default 2) |
+| `rim_bst_from` | `int?` | Backspace tolerance lower bound in mm (1–8, default 2) |
+| `rim_bst_to` | `int?` | Backspace tolerance upper bound in mm (1–8, default 2) |
+| `od_tolerance` | `float?` | Overall diameter tolerance fraction (0–0.05, default 0.01) |
+| `ow_tolerance` | `float?` | Overall width tolerance fraction (0–0.03, default 0) |
+| `diameter_range` | `int?` | Widen rim diameter search ±N inches (0–3, default 0 = exact) |
+| `sort` | `"name" \| "fitment" \| "load"?` | Sort: name (A-Z), fitment (closest FS delta first), load (heaviest first) |
+
+> Примечание (2026-06): сортировка передаётся параметром **`sort`** — раньше тулы слали значения name/fitment/load в `ordering`, что API отклонял с VALIDATION_ERROR. Параметр `region` убран из drill-down тулов: эндпоинты его молча игнорируют (в спеке его нет).
+
 Генерация e-commerce карточек товаров. Геометрический 2D-фитмент (backspace/frontspace). Без ограничений.
 
 ---
@@ -465,7 +484,7 @@
 | `rim_diameter` | `float` | Rim diameter in inches (8–26) |
 | `rim_width` | `float` | Rim width in inches (2–14) |
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
-| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
+| *+ общие геометрические параметры* | | см. блок выше |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 
@@ -501,14 +520,7 @@
 | `rim_diameter` | `float` | Rim diameter in inches (8–26) |
 | `rim_width` | `float` | Rim width in inches (2–14) |
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
-| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
-| `fs_poke` | `int?` | Frontspace poke tolerance in mm (0–150, default 2) |
-| `bs_push` | `int?` | Backspace push tolerance in mm (0–150, default 2) |
-| `rim_bst_from` | `int?` | Backspace tolerance lower bound in mm (1–8, default 2) |
-| `rim_bst_to` | `int?` | Backspace tolerance upper bound in mm (1–8, default 2) |
-| `od_tolerance` | `float?` | Overall diameter tolerance fraction (0–0.05, default 0.01) |
-| `ow_tolerance` | `float?` | Overall width tolerance fraction (0–0.03, default 0) |
-| `ordering` | `"name" \| "fitment" \| "load"?` | Sort: A-Z name, closest fitment delta, heaviest load |
+| *+ общие геометрические параметры* | | см. блок выше |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 
@@ -538,8 +550,7 @@
 | `rim_diameter` | `float` | Rim diameter in inches (8–26) |
 | `rim_width` | `float` | Rim width in inches (2–14) |
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
-| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
-| `region` | `list[str]?` | Region slug(s). Filter modifications by market region. |
+| *+ общие геометрические параметры* | | см. блок выше |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 
@@ -572,7 +583,7 @@
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
 | `section_width` | `int` | Tire section width in mm (115–365) |
 | `aspect_ratio` | `int` | Tire aspect ratio (25–95) |
-| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
+| *+ общие геометрические параметры* | | см. блок выше |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 
@@ -622,12 +633,7 @@
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
 | `section_width` | `int` | Tire section width in mm (115–365) |
 | `aspect_ratio` | `int` | Tire aspect ratio (25–95) |
-| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
-| `rim_bst_from` | `int?` | Backspace tolerance lower bound in mm (1–8, default 2) |
-| `rim_bst_to` | `int?` | Backspace tolerance upper bound in mm (1–8, default 2) |
-| `od_tolerance` | `float?` | Overall diameter tolerance fraction (0–0.05, default 0.01) |
-| `ow_tolerance` | `float?` | Overall width tolerance fraction (0–0.03, default 0) |
-| `ordering` | `"name" \| "fitment" \| "load"?` | Sort order |
+| *+ общие геометрические параметры* | | см. блок выше |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 

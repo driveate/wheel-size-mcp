@@ -336,6 +336,14 @@ async def test_classified_drill_down_flow(call_tool):
     assert "oem_rim" in item
 
 
+async def test_find_vehicles_for_rim_sort_fitment(call_tool):
+    """sort=fitment must reach the API as 'sort' — sending it as 'ordering' is a 400."""
+    data = await call_tool("find_vehicles_for_rim", {**RIM_SPEC, "sort": "fitment"})
+    assert data["total"] > 0
+    first = data["results"][0]
+    assert first["min_fs_delta_mm"] is not None
+
+
 async def test_classified_package_drill_down_flow(call_tool):
     """Chain: find_vehicles_for_package → pick first generation → drill into modifications."""
     package = {

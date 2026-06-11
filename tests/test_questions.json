@@ -381,6 +381,20 @@
         "question": "Show me all BMW trims that fit a 5x120 19x8.5 ET35 rim with 255/35R19 tires",
         "expected_tools": ["find_vehicles_for_package", "find_vehicle_modifications_for_package"],
         "tests": "Package drill-down chain: generations → specific trims (was gap-01, unblocked by P3)"
+      },
+      {
+        "id": "cls-08",
+        "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",
+        "expected_tools": ["find_vehicles_for_rim"],
+        "expected_params": {"sort": "fitment"},
+        "tests": "Classified sort param (was gap-02, unblocked by P4)"
+      },
+      {
+        "id": "cls-09",
+        "question": "What tires fit my 5x114.3 17x7 ET45 rim? Also show options if I went an inch up or down",
+        "expected_tools": ["find_tires_for_rim"],
+        "expected_params": {"diameter_range": 1},
+        "tests": "Diameter range widening ±1 inch (was gap-03, unblocked by P4)"
       }
     ]
   },
@@ -582,18 +596,6 @@
   "coverage_gaps": {
     "_description": "Questions the system can NOT fully answer yet. Two groups: 'pending' = planned MCP work (P3-P5) or unwrapped API endpoints; 'out_of_scope' = the Wheel Fitment API has no such data. For all of these the correct LLM behavior is to answer with the closest available tool AND state the limitation honestly — never fabricate.",
     "pending": [
-      {
-        "id": "gap-02",
-        "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",
-        "blocked_by": "P4 — classified 'sort' param (name/fitment/load) not exposed; tools send legacy 'ordering'",
-        "tests": "Classified sort parameter"
-      },
-      {
-        "id": "gap-03",
-        "question": "What tires fit my 17-inch rim? Also show options if I went an inch up or down",
-        "blocked_by": "P4 — 'diameter_range' (±N inch widening) not exposed on classified tools",
-        "tests": "Diameter range widening"
-      },
       {
         "id": "gap-04",
         "question": "What cars use 225/45R17 tires with at least a V speed rating and load index 91+?",

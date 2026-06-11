@@ -1,6 +1,6 @@
 # Инвентарь MCP-тулов wheel-size-mcp
 
-18 тулов, сгруппированных по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata` и `check_*_fitment_for_vehicle`, которые добавляют MCP-side логику поверх API-ответа.
+20 тулов, сгруппированных по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata` и `check_*_fitment_for_vehicle`, которые добавляют MCP-side логику поверх API-ответа.
 
 ---
 
@@ -157,9 +157,9 @@
 
 ---
 
-## Search (`tools/search.py`) — 6 тулов
+## Search (`tools/search.py`) — 8 тулов
 
-Поиск фитмента. **search_by_vehicle, search_by_rim, search_by_tire, check_rim_fitment_for_vehicle, check_tire_fitment_for_vehicle** — только по запросу пользователя (API ToS), нельзя вызывать в автономных циклах. `calculate_upsteps` — без ограничений.
+Поиск фитмента. Все, кроме `calculate_upsteps`, — только по запросу пользователя (API ToS), нельзя вызывать в автономных циклах: **search_by_vehicle, search_by_rim, search_by_tire, search_by_hf_tire, check_rim_fitment_for_vehicle, check_tire_fitment_for_vehicle, check_hf_tire_fitment_for_vehicle**.
 
 ---
 
@@ -252,9 +252,8 @@
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests a tire compatibility search. Do not call in autonomous loops.
 >
-> This tool accepts metric sizes only. High-flotation (LT) tires with
-> inch-based sizing (e.g. 33x12.5R15) are not supported here — use
-> get_spec_metadata (HF mode) for spec information.
+> This tool accepts metric sizes only. For high-flotation (LT) tires
+> with inch-based sizing (e.g. 31x10.50R15), use search_by_hf_tire.
 
 **Параметры**:
 | Параметр | Тип | Описание |
@@ -266,6 +265,72 @@
 | `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
+
+---
+
+### `search_by_hf_tire`
+
+**API**: `GET /v2/by_hf_tire/search/`
+
+**Docstring**:
+> Find vehicles compatible with a high-flotation (LT) tire size.
+>
+> HF tires use inch-based sizing like 31x10.50R15: overall diameter x
+> section width R rim diameter, all in inches. Common on trucks, SUVs,
+> and offroad vehicles. For metric sizes (e.g. 225/45R17) use
+> search_by_tire instead.
+>
+> IMPORTANT: This is a Search method — only call when a user explicitly
+> requests a tire compatibility search. Do not call in autonomous loops.
+
+**Параметры**:
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `overall_diameter` | `float` | Overall tire diameter in inches (27–38, e.g. 31) |
+| `section_width` | `float` | Tire section width in inches (4.5–14, e.g. 10.5) |
+| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `region` | `list[str]?` | Region slug(s) |
+| `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
+| `limit` | `int` | Results per page (default 20) |
+| `offset` | `int` | Pagination offset |
+
+---
+
+### `check_hf_tire_fitment_for_vehicle` (составной)
+
+**API**: `GET /v2/by_hf_tire/search/modifications/` + MCP-side фильтрация по году
+
+**Docstring**:
+> Check whether a high-flotation (LT) tire size fits a specific vehicle.
+>
+> Answers "do 31x10.50R15 tires fit my 2000 Chevy Blazer?" in one call:
+> returns the vehicle's modifications (trims) where this HF tire size
+> appears as a documented fitment. An EMPTY result means no documented
+> fitment for that combination. Inch-based HF sizes only — for metric
+> sizes use check_tire_fitment_for_vehicle.
+>
+> The API has no year parameter, so 'year' is filtered MCP-side against
+> each modification's production range (start_year/end_year); each row
+> echoes its range so near-misses can be explained.
+>
+> IMPORTANT: This is a Search method — only call when a user explicitly
+> requests a fitment check. Do not call in autonomous loops.
+
+**Параметры**:
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `make` | `str` | Make slug (e.g. 'chevrolet') |
+| `model` | `str` | Model slug (e.g. 'blazer') |
+| `overall_diameter` | `float` | Overall tire diameter in inches (27–38) |
+| `section_width` | `float` | Tire section width in inches (4.5–14) |
+| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `year` | `int?` | Model year — MCP-side фильтр по start_year/end_year |
+| `region` | `list[str]?` | Region slug(s) |
+| `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
+| `limit` | `int` | Results per page (default 20) |
+| `offset` | `int` | Pagination offset |
+
+**MCP-side логика**: та же year-фильтрация, что у `check_rim_fitment_for_vehicle`.
 
 ---
 
@@ -587,11 +652,11 @@
 | Модуль     | Кол-во тулов | API-эндпоинтов | Ограничения         |
 | ---------- | ------------ | -------------- | ------------------- |
 | Catalog    | 6            | 6              | Нет                 |
-| Search     | 6            | 6              | ToS (кроме upsteps) |
+| Search     | 8            | 8              | ToS (кроме upsteps) |
 | Classified | 5            | 5              | Нет                 |
 | Utility    | 1            | 1              | Нет                 |
-| **Итого**  | **18**       | **18**         | —                   |
+| **Итого**  | **20**       | **20**         | —                   |
 
 
-**Простых тулов (1:1 с API)**: 15
-**Составных (API + MCP-логика)**: 3 (`get_spec_metadata`, `check_rim_fitment_for_vehicle`, `check_tire_fitment_for_vehicle`)
+**Простых тулов (1:1 с API)**: 16
+**Составных (API + MCP-логика)**: 4 (`get_spec_metadata`, `check_rim_fitment_for_vehicle`, `check_tire_fitment_for_vehicle`, `check_hf_tire_fitment_for_vehicle`)

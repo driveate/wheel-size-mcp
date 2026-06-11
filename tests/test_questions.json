@@ -241,6 +241,38 @@
     ]
   },
 
+  "hf_tire": {
+    "_description": "High-flotation (LT) inch-based tire sizes — trucks, SUVs, offroad",
+    "questions": [
+      {
+        "id": "hf-01",
+        "question": "What vehicles use 31x10.50R15 tires?",
+        "expected_tools": ["search_by_hf_tire"],
+        "expected_params": {"overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15},
+        "tests": "HF size parsing — must NOT call metric search_by_tire"
+      },
+      {
+        "id": "hf-02",
+        "question": "Will 31x10.50R15 tires fit my 2000 Chevy Blazer?",
+        "expected_tools": ["check_hf_tire_fitment_for_vehicle"],
+        "expected_params": {"make": "chevrolet", "model": "blazer", "year": 2000},
+        "tests": "Direct HF fitment check with year"
+      },
+      {
+        "id": "hf-03",
+        "question": "I'm looking at 35x12.5R17 mud tires. How common is that size and what trucks run it?",
+        "expected_tools": ["get_spec_metadata", "search_by_hf_tire"],
+        "tests": "HF metadata (overall_diameter + inch section_width) then search"
+      },
+      {
+        "id": "hf-04",
+        "question": "What cars use 225/45R17 tires? And what about 31x10.5R15?",
+        "expected_tools": ["search_by_tire", "search_by_hf_tire"],
+        "tests": "Mixed metric + HF in one question — correct tool per size system"
+      }
+    ]
+  },
+
   "upstep_calculator": {
     "_description": "Plus/minus sizing calculations",
     "questions": [

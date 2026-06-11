@@ -226,9 +226,8 @@ def register(mcp: FastMCP):
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a tire compatibility search. Do not call in autonomous loops.
 
-        This tool accepts metric sizes only. High-flotation (LT) tires with
-        inch-based sizing (e.g. 33x12.5R15) are not supported here — use
-        get_spec_metadata (HF mode) for spec information.
+        This tool accepts metric sizes only. For high-flotation (LT) tires
+        with inch-based sizing (e.g. 31x10.50R15), use search_by_hf_tire.
         """
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,
@@ -250,6 +249,100 @@ def register(mcp: FastMCP):
             for item in data["data"]
         ]
         return paginated_response(items, total, offset, limit)
+
+    @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
+    async def search_by_hf_tire(
+        overall_diameter: Annotated[
+            float, Field(ge=27, le=38, description="Overall tire diameter in inches (e.g. 31 for 31x10.50R15)")
+        ],
+        section_width: Annotated[
+            float, Field(ge=4.5, le=14, description="Tire section width in inches (e.g. 10.5)")
+        ],
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 15)")],
+        region: Annotated[
+            list[str] | None,
+            Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
+        ] = None,
+        mode: Annotated[Literal["both", "front_only", "rear_only"] | None, Field(description="Axle mode")] = None,
+        limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
+    ) -> dict:
+        """Find vehicles compatible with a high-flotation (LT) tire size.
+
+        HF tires use inch-based sizing like 31x10.50R15: overall diameter x
+        section width R rim diameter, all in inches. Common on trucks, SUVs,
+        and offroad vehicles. For metric sizes (e.g. 225/45R17) use
+        search_by_tire instead.
+
+        IMPORTANT: This is a Search method — only call when a user explicitly
+        requests a tire compatibility search. Do not call in autonomous loops.
+        """
+        params = {
+            "overall_diameter": overall_diameter, "section_width": section_width,
+            "rim_diameter": rim_diameter,
+            "region": normalize_regions(region), "mode": mode,
+            "limit": limit, "offset": offset,
+        }
+        data = await api.get("/v2/by_hf_tire/search/", params)
+        total = data["meta"]["count"]
+        items = [
+            {
+                "make": item["make"]["slug"],
+                "make_name": item["make"]["name"],
+                "model": item["slug"],
+                "model_name": item["name"],
+                "year_ranges": item.get("year_ranges", []),
+                "regions": item.get("regions", []),
+            }
+            for item in data["data"]
+        ]
+        return paginated_response(items, total, offset, limit)
+
+    @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
+    async def check_hf_tire_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'chevrolet'). Use list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'blazer'). Use list_models to find valid slugs.")],
+        overall_diameter: Annotated[
+            float, Field(ge=27, le=38, description="Overall tire diameter in inches (e.g. 31 for 31x10.50R15)")
+        ],
+        section_width: Annotated[
+            float, Field(ge=4.5, le=14, description="Tire section width in inches (e.g. 10.5)")
+        ],
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 15)")],
+        year: Annotated[
+            int | None,
+            Field(ge=1950, le=2027, description="Model year — filters to modifications in production that year"),
+        ] = None,
+        region: Annotated[
+            list[str] | None,
+            Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
+        ] = None,
+        mode: Annotated[Literal["both", "front_only", "rear_only"] | None, Field(description="Axle mode")] = None,
+        limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
+    ) -> dict:
+        """Check whether a high-flotation (LT) tire size fits a specific vehicle.
+
+        Answers "do 31x10.50R15 tires fit my 2000 Chevy Blazer?" in one call:
+        returns the vehicle's modifications (trims) where this HF tire size
+        appears as a documented fitment. An EMPTY result means no documented
+        fitment for that combination. Inch-based HF sizes only — for metric
+        sizes use check_tire_fitment_for_vehicle.
+
+        The API has no year parameter, so 'year' is filtered MCP-side against
+        each modification's production range (start_year/end_year); each row
+        echoes its range so near-misses can be explained.
+
+        IMPORTANT: This is a Search method — only call when a user explicitly
+        requests a fitment check. Do not call in autonomous loops.
+        """
+        params = {
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "overall_diameter": overall_diameter, "section_width": section_width,
+            "rim_diameter": rim_diameter,
+            "region": normalize_regions(region), "mode": mode,
+        }
+        return await _fitment_check("/v2/by_hf_tire/search/modifications/", params, year, limit, offset)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
     async def check_rim_fitment_for_vehicle(

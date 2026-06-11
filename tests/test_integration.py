@@ -218,6 +218,30 @@ async def test_check_tire_fitment_for_vehicle(call_tool):
     assert "engine" in item
 
 
+async def test_search_by_hf_tire(call_tool):
+    """31x10.50R15 — classic offroad size, known data in the local DB."""
+    data = await call_tool("search_by_hf_tire", {
+        "overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15,
+    })
+    assert data["total"] > 0
+    item = data["results"][0]
+    assert "make" in item
+    assert "year_ranges" in item
+
+
+async def test_check_hf_tire_fitment_for_vehicle(call_tool):
+    """31x10.50R15 on a Chevrolet Blazer — known fitment in the local DB."""
+    data = await call_tool("check_hf_tire_fitment_for_vehicle", {
+        "make": "chevrolet", "model": "blazer",
+        "overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15,
+        "year": 2000,
+    })
+    assert data["total"] > 0
+    item = data["results"][0]
+    assert item["start_year"] is None or item["start_year"] <= 2000
+    assert item["end_year"] is None or item["end_year"] >= 2000
+
+
 async def test_calculate_upsteps(call_tool):
     data = await call_tool("calculate_upsteps", {
         "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,

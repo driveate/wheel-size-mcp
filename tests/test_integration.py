@@ -175,6 +175,49 @@ async def test_search_by_tire(call_tool):
     assert "model" in item
 
 
+async def test_check_rim_fitment_for_vehicle(call_tool):
+    """Camry on 5x114.3 17x7.5 — known fitment in the local DB."""
+    data = await call_tool("check_rim_fitment_for_vehicle", {
+        "make": "toyota", "model": "camry",
+        "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
+    })
+    assert data["total"] > 0
+    item = data["results"][0]
+    assert "modification" in item
+    assert "start_year" in item
+    assert "end_year" in item
+    assert "generation" in item
+
+
+async def test_check_rim_fitment_for_vehicle_year_filter(call_tool):
+    """Year filter keeps only modifications whose production range covers it."""
+    unfiltered = await call_tool("check_rim_fitment_for_vehicle", {
+        "make": "toyota", "model": "camry",
+        "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
+    })
+    filtered = await call_tool("check_rim_fitment_for_vehicle", {
+        "make": "toyota", "model": "camry",
+        "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
+        "year": 2002,
+    })
+    assert 0 < filtered["total"] < unfiltered["total"]
+    for item in filtered["results"]:
+        assert item["start_year"] is None or item["start_year"] <= 2002
+        assert item["end_year"] is None or item["end_year"] >= 2002
+
+
+async def test_check_tire_fitment_for_vehicle(call_tool):
+    """215/50R17 on a Civic — known fitment in the local DB."""
+    data = await call_tool("check_tire_fitment_for_vehicle", {
+        "make": "honda", "model": "civic",
+        "section_width": 215, "aspect_ratio": 50, "rim_diameter": 17,
+    })
+    assert data["total"] > 0
+    item = data["results"][0]
+    assert "modification" in item
+    assert "engine" in item
+
+
 async def test_calculate_upsteps(call_tool):
     data = await call_tool("calculate_upsteps", {
         "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,

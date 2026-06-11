@@ -17,6 +17,76 @@ from ws_mcp.response import filter_vehicle_fitment, paginated_response
 from ws_mcp.slugify import normalize_regions, normalize_slug
 from ws_mcp.tools._annotations import SEARCH_ANNOTATIONS
 
+# Max raw rows fetched from the API when filtering by year MCP-side
+# (the search/modifications endpoints expose no year parameter)
+_YEAR_FETCH_CAP = 200
+_API_PAGE_SIZE = 50
+
+
+def _year_in_range(item: dict, year: int) -> bool:
+    """True if the modification's production range covers the year (open ends pass)."""
+    start, end = item.get("start_year"), item.get("end_year")
+    return (start is None or start <= year) and (end is None or year <= end)
+
+
+def _map_modification_row(item: dict) -> dict:
+    """Project a search/modifications API row to essential fields."""
+    gen = item.get("generation") or {}
+    engine = item.get("engine") or {}
+    return {
+        "modification": item["slug"],
+        "name": item["name"],
+        "trim": item.get("trim"),
+        "trim_levels": item.get("trim_levels", []),
+        "generation": gen.get("slug"),
+        "generation_name": gen.get("name"),
+        "start_year": item.get("start_year"),
+        "end_year": item.get("end_year"),
+        "engine": {
+            "fuel": engine.get("fuel"),
+            "capacity": engine.get("capacity"),
+            "hp": (engine.get("power") or {}).get("hp"),
+        },
+        "regions": item.get("regions", []),
+    }
+
+
+async def _fitment_check(path: str, params: dict, year: int | None, limit: int, offset: int) -> dict:
+    """Run a search/modifications request with optional MCP-side year filtering.
+
+    Without a year the API's own pagination is used. With a year, raw rows are
+    fetched (up to _YEAR_FETCH_CAP), filtered by production range, and the
+    filtered list is paginated MCP-side.
+    """
+    if year is None:
+        data = await api.get(path, {**params, "limit": limit, "offset": offset})
+        items = [_map_modification_row(r) for r in data["data"]]
+        return paginated_response(items, data["meta"]["count"], offset, limit)
+
+    raw: list[dict] = []
+    api_offset = 0
+    truncated = False
+    while True:
+        data = await api.get(path, {**params, "limit": _API_PAGE_SIZE, "offset": api_offset})
+        raw.extend(data["data"])
+        api_offset += _API_PAGE_SIZE
+        if api_offset >= data["meta"]["count"]:
+            break
+        if api_offset >= _YEAR_FETCH_CAP:
+            truncated = True
+            break
+
+    matched = [r for r in raw if _year_in_range(r, year)]
+    items = [_map_modification_row(r) for r in matched[offset : offset + limit]]
+    result = paginated_response(items, len(matched), offset, limit)
+    if truncated:
+        result["note"] = (
+            f"Year filter scanned only the first {_YEAR_FETCH_CAP} of "
+            f"{data['meta']['count']} matching rows — results may be incomplete. "
+            f"Narrow the spec (e.g. add rim_offset) to reduce the candidate set."
+        )
+    return result
+
 
 def register(mcp: FastMCP):
     """Register search tools with the MCP server."""
@@ -180,6 +250,96 @@ def register(mcp: FastMCP):
             for item in data["data"]
         ]
         return paginated_response(items, total, offset, limit)
+
+    @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
+    async def check_rim_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use list_models to find valid slugs.")],
+        bolt_pattern: Annotated[str, Field(description="Bolt pattern of the rim (e.g. '5x114.3')")],
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
+        rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches (e.g. 7)")],
+        rim_offset: Annotated[int | None, Field(ge=-150, le=150, description="Rim offset ET in mm (e.g. 40)")] = None,
+        cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore in mm (e.g. 64.1)")] = None,
+        year: Annotated[
+            int | None,
+            Field(ge=1950, le=2027, description="Model year — filters to modifications in production that year"),
+        ] = None,
+        region: Annotated[
+            list[str] | None,
+            Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
+        ] = None,
+        mode: Annotated[Literal["both", "front_only", "rear_only"] | None, Field(description="Axle mode")] = None,
+        limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
+    ) -> dict:
+        """Check whether specific rims fit a specific vehicle (make + model, optionally year).
+
+        Answers "will 5x114.3 17x7 ET40 rims fit my 2020 Honda Civic?" in one
+        call: returns the vehicle's modifications (trims) where this rim appears
+        as a documented fitment. An EMPTY result means no documented fitment for
+        that combination — the rim is likely incompatible or undocumented.
+
+        The API has no year parameter, so 'year' is filtered MCP-side against
+        each modification's production range (start_year/end_year); each row
+        echoes its range so near-misses can be explained.
+
+        Prefer this over search_by_rim + search_by_vehicle comparison when the
+        user names a specific vehicle.
+
+        IMPORTANT: This is a Search method — only call when a user explicitly
+        requests a fitment check. Do not call in autonomous loops.
+        """
+        params = {
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
+            "rim_width": rim_width, "rim_offset": rim_offset, "cb": cb,
+            "region": normalize_regions(region), "mode": mode,
+        }
+        return await _fitment_check("/v2/by_rim/search/modifications/", params, year, limit, offset)
+
+    @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
+    async def check_tire_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use list_models to find valid slugs.")],
+        section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm (e.g. 225)")],
+        aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio (e.g. 45)")],
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
+        year: Annotated[
+            int | None,
+            Field(ge=1950, le=2027, description="Model year — filters to modifications in production that year"),
+        ] = None,
+        region: Annotated[
+            list[str] | None,
+            Field(description="Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm'])."),
+        ] = None,
+        mode: Annotated[Literal["both", "front_only", "rear_only"] | None, Field(description="Axle mode")] = None,
+        limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
+    ) -> dict:
+        """Check whether a specific tire size fits a specific vehicle (make + model, optionally year).
+
+        Answers "do 225/45R17 tires fit my 2020 Honda Civic?" in one call:
+        returns the vehicle's modifications (trims) where this tire size appears
+        as a documented fitment. An EMPTY result means no documented fitment for
+        that combination. Metric sizes only.
+
+        The API has no year parameter, so 'year' is filtered MCP-side against
+        each modification's production range (start_year/end_year); each row
+        echoes its range so near-misses can be explained.
+
+        Prefer this over search_by_tire + search_by_vehicle comparison when the
+        user names a specific vehicle.
+
+        IMPORTANT: This is a Search method — only call when a user explicitly
+        requests a fitment check. Do not call in autonomous loops.
+        """
+        params = {
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "section_width": section_width, "aspect_ratio": aspect_ratio,
+            "rim_diameter": rim_diameter,
+            "region": normalize_regions(region), "mode": mode,
+        }
+        return await _fitment_check("/v2/by_tire/search/modifications/", params, year, limit, offset)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search"})
     async def calculate_upsteps(

@@ -1,6 +1,6 @@
 # Инвентарь MCP-тулов wheel-size-mcp
 
-16 тулов, сгруппированных по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata`, который добавляет MCP-side логику поверх API-ответа.
+18 тулов, сгруппированных по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata` и `check_*_fitment_for_vehicle`, которые добавляют MCP-side логику поверх API-ответа.
 
 ---
 
@@ -157,9 +157,9 @@
 
 ---
 
-## Search (`tools/search.py`) — 4 тула
+## Search (`tools/search.py`) — 6 тулов
 
-Поиск фитмента. **search_by_vehicle, search_by_rim, search_by_tire** — только по запросу пользователя (API ToS), нельзя вызывать в автономных циклах. `calculate_upsteps` — без ограничений.
+Поиск фитмента. **search_by_vehicle, search_by_rim, search_by_tire, check_rim_fitment_for_vehicle, check_tire_fitment_for_vehicle** — только по запросу пользователя (API ToS), нельзя вызывать в автономных циклах. `calculate_upsteps` — без ограничений.
 
 ---
 
@@ -252,8 +252,9 @@
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests a tire compatibility search. Do not call in autonomous loops.
 >
-> For high-flotation (LT) tires with inch-based sizing (e.g. 33x12.5R15),
-> use search_by_hf_tire instead.
+> This tool accepts metric sizes only. High-flotation (LT) tires with
+> inch-based sizing (e.g. 33x12.5R15) are not supported here — use
+> get_spec_metadata (HF mode) for spec information.
 
 **Параметры**:
 | Параметр | Тип | Описание |
@@ -265,6 +266,88 @@
 | `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
+
+---
+
+### `check_rim_fitment_for_vehicle` (составной)
+
+**API**: `GET /v2/by_rim/search/modifications/` + MCP-side фильтрация по году
+
+**Docstring**:
+> Check whether specific rims fit a specific vehicle (make + model, optionally year).
+>
+> Answers "will 5x114.3 17x7 ET40 rims fit my 2020 Honda Civic?" in one
+> call: returns the vehicle's modifications (trims) where this rim appears
+> as a documented fitment. An EMPTY result means no documented fitment for
+> that combination — the rim is likely incompatible or undocumented.
+>
+> The API has no year parameter, so 'year' is filtered MCP-side against
+> each modification's production range (start_year/end_year); each row
+> echoes its range so near-misses can be explained.
+>
+> Prefer this over search_by_rim + search_by_vehicle comparison when the
+> user names a specific vehicle.
+>
+> IMPORTANT: This is a Search method — only call when a user explicitly
+> requests a fitment check. Do not call in autonomous loops.
+
+**Параметры**:
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `make` | `str` | Make slug (e.g. 'honda') |
+| `model` | `str` | Model slug (e.g. 'civic') |
+| `bolt_pattern` | `str` | Bolt pattern of the rim (e.g. '5x114.3') |
+| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `rim_width` | `float` | Rim width in inches (2–14) |
+| `rim_offset` | `int?` | Rim offset ET in mm (-150–150) |
+| `cb` | `float?` | Centre bore in mm (52.1–225) |
+| `year` | `int?` | Model year — MCP-side фильтр по start_year/end_year |
+| `region` | `list[str]?` | Region slug(s) |
+| `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
+| `limit` | `int` | Results per page (default 20) |
+| `offset` | `int` | Pagination offset |
+
+**MCP-side логика**: у API-эндпоинта нет параметра `year` — фильтрация выполняется на стороне MCP по диапазону выпуска модификации (`start_year`/`end_year`, открытые границы проходят). При заданном `year` строки выбираются страницами по 50 (максимум 200), фильтруются и пагинируются MCP-side; при превышении лимита в ответ добавляется `note` о неполноте.
+
+---
+
+### `check_tire_fitment_for_vehicle` (составной)
+
+**API**: `GET /v2/by_tire/search/modifications/` + MCP-side фильтрация по году
+
+**Docstring**:
+> Check whether a specific tire size fits a specific vehicle (make + model, optionally year).
+>
+> Answers "do 225/45R17 tires fit my 2020 Honda Civic?" in one call:
+> returns the vehicle's modifications (trims) where this tire size appears
+> as a documented fitment. An EMPTY result means no documented fitment for
+> that combination. Metric sizes only.
+>
+> The API has no year parameter, so 'year' is filtered MCP-side against
+> each modification's production range (start_year/end_year); each row
+> echoes its range so near-misses can be explained.
+>
+> Prefer this over search_by_tire + search_by_vehicle comparison when the
+> user names a specific vehicle.
+>
+> IMPORTANT: This is a Search method — only call when a user explicitly
+> requests a fitment check. Do not call in autonomous loops.
+
+**Параметры**:
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `make` | `str` | Make slug (e.g. 'honda') |
+| `model` | `str` | Model slug (e.g. 'civic') |
+| `section_width` | `int` | Tire section width in mm (115–365) |
+| `aspect_ratio` | `int` | Tire aspect ratio (25–95) |
+| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `year` | `int?` | Model year — MCP-side фильтр по start_year/end_year |
+| `region` | `list[str]?` | Region slug(s) |
+| `mode` | `"both" \| "front_only" \| "rear_only"?` | Axle mode |
+| `limit` | `int` | Results per page (default 20) |
+| `offset` | `int` | Pagination offset |
+
+**MCP-side логика**: та же year-фильтрация, что у `check_rim_fitment_for_vehicle`.
 
 ---
 
@@ -465,8 +548,8 @@
 >
 > Auto-detects mode from parameters:
 > - rim: rim_diameter + rim_width (optionally rim_offset)
-> - tire: section_width + aspect_ratio + rim_diameter
-> - hf_tire: overall_diameter + section_width + rim_diameter
+> - tire: section_width [mm] + aspect_ratio + rim_diameter
+> - hf_tire: overall_diameter + section_width [inches] + rim_diameter
 > - package: rim + tire params combined
 >
 > Use before search or classified calls to understand whether a spec
@@ -481,7 +564,7 @@
 | `rim_width` | `float?` | Rim width in inches (2–16, e.g. 8.0) |
 | `rim_offset` | `float?` | Offset ET in mm (-150–150, e.g. 45). Enables geometry. |
 | `bolt_pattern` | `str?` | Bolt pattern (e.g. '5x114.3'). Narrows population stats. |
-| `section_width` | `int?` | Tire section width in mm (95–405, e.g. 225) |
+| `section_width` | `float?` | Метрические шины: мм (95–405, e.g. 225). HF (задан `overall_diameter`): дюймы (4.5–14, e.g. 12.5) |
 | `aspect_ratio` | `int?` | Tire aspect ratio (20–95, e.g. 45) |
 | `overall_diameter` | `float?` | Overall tire diameter in inches (20–50, e.g. 33). HF mode. |
 
@@ -504,11 +587,11 @@
 | Модуль     | Кол-во тулов | API-эндпоинтов | Ограничения         |
 | ---------- | ------------ | -------------- | ------------------- |
 | Catalog    | 6            | 6              | Нет                 |
-| Search     | 4            | 4              | ToS (кроме upsteps) |
+| Search     | 6            | 6              | ToS (кроме upsteps) |
 | Classified | 5            | 5              | Нет                 |
 | Utility    | 1            | 1              | Нет                 |
-| **Итого**  | **16**       | **16**         | —                   |
+| **Итого**  | **18**       | **18**         | —                   |
 
 
 **Простых тулов (1:1 с API)**: 15
-**Составных (API + MCP-логика)**: 1 (`get_spec_metadata`)
+**Составных (API + MCP-логика)**: 3 (`get_spec_metadata`, `check_rim_fitment_for_vehicle`, `check_tire_fitment_for_vehicle`)

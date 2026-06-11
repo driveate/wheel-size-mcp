@@ -1,5 +1,5 @@
 {
-  "_description": "Test question library for MCP server evaluation. Each question tests specific tools/workflows and expected LLM behavior. The 'coverage_gaps' section tracks questions the system can NOT fully answer yet — move entries out of it as the blocking work (P3-P5) ships. Last coverage audit: 2026-06-11, 20 tools.",
+  "_description": "Test question library for MCP server evaluation. Each question tests specific tools/workflows and expected LLM behavior. The 'coverage_gaps' section tracks questions the system can NOT fully answer yet — move entries out of it as the blocking work (P3-P5) ships. Last coverage audit: 2026-06-11, 21 tools.",
 
   "catalog_flow": {
     "_description": "Questions that exercise the catalog navigation chain (list_makes → list_models → list_years → list_generations → list_modifications)",
@@ -375,6 +375,12 @@
         "expected_tools": ["find_vehicles_for_rim"],
         "expected_params": {"bolt_pattern": "5x100", "rim_diameter": 17, "rim_width": 7, "rim_offset": 45, "cb": 56.1},
         "tests": "Centre bore parameter usage"
+      },
+      {
+        "id": "cls-07",
+        "question": "Show me all BMW trims that fit a 5x120 19x8.5 ET35 rim with 255/35R19 tires",
+        "expected_tools": ["find_vehicles_for_package", "find_vehicle_modifications_for_package"],
+        "tests": "Package drill-down chain: generations → specific trims (was gap-01, unblocked by P3)"
       }
     ]
   },
@@ -576,13 +582,6 @@
   "coverage_gaps": {
     "_description": "Questions the system can NOT fully answer yet. Two groups: 'pending' = planned MCP work (P3-P5) or unwrapped API endpoints; 'out_of_scope' = the Wheel Fitment API has no such data. For all of these the correct LLM behavior is to answer with the closest available tool AND state the limitation honestly — never fabricate.",
     "pending": [
-      {
-        "id": "gap-01",
-        "question": "Show me all BMW trims that fit a 5x120 19x8.5 ET35 rim with 255/35R19 tires",
-        "blocked_by": "P3 — /v2/classified/by_package/search/modifications/ not wrapped (rim-only drill-down exists)",
-        "workaround": "find_vehicle_modifications_for_rim ignores the tire part",
-        "tests": "Package drill-down parity"
-      },
       {
         "id": "gap-02",
         "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",

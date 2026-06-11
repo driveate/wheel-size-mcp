@@ -1,6 +1,6 @@
 # Инвентарь MCP-тулов wheel-size-mcp
 
-20 тулов, сгруппированных по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata` и `check_*_fitment_for_vehicle`, которые добавляют MCP-side логику поверх API-ответа.
+21 тул, сгруппированный по 4 модулям. Каждый тул — обёртка над одним API-эндпоинтом Wheel Fitment API (`/v2/...`), кроме `get_spec_metadata` и `check_*_fitment_for_vehicle`, которые добавляют MCP-side логику поверх API-ответа.
 
 ---
 
@@ -440,7 +440,7 @@
 
 ---
 
-## Classified (`tools/classified.py`) — 5 тулов
+## Classified (`tools/classified.py`) — 6 тулов
 
 Генерация e-commerce карточек товаров. Геометрический 2D-фитмент (backspace/frontspace). Без ограничений.
 
@@ -540,6 +540,39 @@
 | `rim_offset` | `float` | Rim offset in mm (-150–150) |
 | `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
 | `region` | `list[str]?` | Region slug(s). Filter modifications by market region. |
+| `limit` | `int` | Results per page (default 20) |
+| `offset` | `int` | Pagination offset |
+
+---
+
+### `find_vehicle_modifications_for_package`
+
+**API**: `GET /v2/classified/by_package/search/modifications/`
+
+**Docstring**:
+> Drill down into individual trims for a generation from find_vehicles_for_package.
+>
+> PREREQUISITES — call find_vehicles_for_package first to get:
+> - make, model, generation slugs (from the results)
+> - Use the same rim AND tire parameters
+>
+> Returns per-vehicle rows with OEM wheel specs (rim, tire) and fitment
+> deltas vs the searched rim + tire package. Completes the e-commerce
+> chain: package search → generations → specific trims.
+
+**Параметры**:
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `make` | `str` | Make slug из результатов find_vehicles_for_package |
+| `model` | `str` | Model slug из результатов |
+| `generation` | `str` | Generation slug из результатов |
+| `bolt_pattern` | `str` | Bolt pattern (e.g. '5x114.3') |
+| `rim_diameter` | `float` | Rim diameter in inches (8–26) |
+| `rim_width` | `float` | Rim width in inches (2–14) |
+| `rim_offset` | `float` | Rim offset in mm (-150–150) |
+| `section_width` | `int` | Tire section width in mm (115–365) |
+| `aspect_ratio` | `int` | Tire aspect ratio (25–95) |
+| `cb` | `float?` | Centre bore diameter in mm (52.1–225) |
 | `limit` | `int` | Results per page (default 20) |
 | `offset` | `int` | Pagination offset |
 
@@ -653,9 +686,9 @@
 | ---------- | ------------ | -------------- | ------------------- |
 | Catalog    | 6            | 6              | Нет                 |
 | Search     | 8            | 8              | ToS (кроме upsteps) |
-| Classified | 5            | 5              | Нет                 |
+| Classified | 6            | 6              | Нет                 |
 | Utility    | 1            | 1              | Нет                 |
-| **Итого**  | **20**       | **20**         | —                   |
+| **Итого**  | **21**       | **21**         | —                   |
 
 
 **Простых тулов (1:1 с API)**: 16

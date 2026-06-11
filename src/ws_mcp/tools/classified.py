@@ -13,6 +13,24 @@ from ws_mcp.slugify import normalize_regions, normalize_slug
 from ws_mcp.tools._annotations import CLASSIFIED_ANNOTATIONS
 
 
+def _map_drilldown_row(item: dict) -> dict:
+    """Project a classified .../search/modifications/ row to essential fields."""
+    end = item.get("production_end_year") or "present"
+    return {
+        "modification": item["slug"],
+        "trim": item.get("trim"),
+        "body": item.get("body"),
+        "years": f"{item['production_start_year']}-{end}",
+        "regions": item.get("regions", []),
+        "oem_rim": item.get("oem_rim"),
+        "oem_tire": item.get("oem_tire"),
+        "fs_delta_mm": item.get("fs_delta_mm"),
+        "bs_delta_mm": item.get("bs_delta_mm"),
+        "cb_diff_mm": item.get("cb_diff_mm"),
+        "load_kg": item.get("load_kg"),
+    }
+
+
 def register(mcp: FastMCP):
     """Register classified tools with the MCP server."""
 
@@ -168,20 +186,45 @@ def register(mcp: FastMCP):
         }
         data = await api.get("/v2/classified/by_rim/search/modifications/", params)
         total = data["meta"]["count"]
-        items = [
-            {
-                "vehicle_id": item["vehicle_id"],
-                "trim": item["trim"],
-                "body": item.get("body"),
-                "years": f"{item['production_start_year']}-{item['production_end_year']}",
-                "oem_rim": item.get("oem_rim"),
-                "oem_tire": item.get("oem_tire"),
-                "fs_delta_mm": item.get("fs_delta_mm"),
-                "bs_delta_mm": item.get("bs_delta_mm"),
-                "load_kg": item.get("load_kg"),
-            }
-            for item in data["data"]
-        ]
+        items = [_map_drilldown_row(item) for item in data["data"]]
+        return paginated_response(items, total, offset, limit)
+
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    async def find_vehicle_modifications_for_package(
+        make: Annotated[str, Field(description="Make slug from find_vehicles_for_package results")],
+        model: Annotated[str, Field(description="Model slug from find_vehicles_for_package results")],
+        generation: Annotated[str, Field(description="Generation slug from find_vehicles_for_package results")],
+        bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
+        rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches")],
+        rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches")],
+        rim_offset: Annotated[float, Field(ge=-150, le=150, description="Rim offset in mm")],
+        section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm")],
+        aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio")],
+        cb: Annotated[float | None, Field(ge=52.1, le=225, description="Centre bore diameter in mm")] = None,
+        limit: Annotated[int, Field(ge=1, le=50, description="Results per page")] = DEFAULT_LIMIT,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset")] = 0,
+    ) -> dict:
+        """Drill down into individual trims for a generation from find_vehicles_for_package.
+
+        PREREQUISITES — call find_vehicles_for_package first to get:
+        - make, model, generation slugs (from the results)
+        - Use the same rim AND tire parameters
+
+        Returns per-vehicle rows with OEM wheel specs (rim, tire) and fitment
+        deltas vs the searched rim + tire package. Completes the e-commerce
+        chain: package search → generations → specific trims.
+        """
+        params = {
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "generation": normalize_slug(generation),
+            "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
+            "rim_width": rim_width, "rim_offset": rim_offset,
+            "section_width": section_width, "aspect_ratio": aspect_ratio,
+            "cb": cb, "limit": limit, "offset": offset,
+        }
+        data = await api.get("/v2/classified/by_package/search/modifications/", params)
+        total = data["meta"]["count"]
+        items = [_map_drilldown_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
@@ -251,6 +294,7 @@ def register(mcp: FastMCP):
         fitment (backspace) and tire size compatibility simultaneously.
 
         For e-commerce combo/bundle product pages.
+        To drill into a specific generation, use find_vehicle_modifications_for_package.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,

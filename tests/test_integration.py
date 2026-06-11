@@ -331,9 +331,34 @@ async def test_classified_drill_down_flow(call_tool):
     })
     assert mods["total"] > 0
     item = mods["results"][0]
-    assert "vehicle_id" in item
+    assert "modification" in item
     assert "trim" in item
     assert "oem_rim" in item
+
+
+async def test_classified_package_drill_down_flow(call_tool):
+    """Chain: find_vehicles_for_package → pick first generation → drill into modifications."""
+    package = {
+        **RIM_SPEC,
+        "section_width": 215, "aspect_ratio": 55,
+    }
+    vehicles = await call_tool("find_vehicles_for_package", package)
+    assert vehicles["total"] > 0
+
+    first = vehicles["results"][0]
+
+    mods = await call_tool("find_vehicle_modifications_for_package", {
+        "make": first["make"],
+        "model": first["model"],
+        "generation": first["generation"],
+        **package,
+    })
+    assert mods["total"] > 0
+    item = mods["results"][0]
+    assert "modification" in item
+    assert "oem_rim" in item
+    assert "oem_tire" in item
+    assert "years" in item
 
 
 # ---------------------------------------------------------------------------

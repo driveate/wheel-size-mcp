@@ -59,9 +59,10 @@ comparing manually.
   Examples: 'bmw' not 'BMW', '3-series' not '3 Series', 'land-rover' not 'Land Rover'
 - ALL flows pass through list_modifications before search_by_vehicle.
   The modification slug ensures accurate fitment for the exact vehicle trim.
-- search_by_vehicle REQUIRES TWO conditions:
-  1. Either 'year' OR 'generation' (to identify the vehicle)
-  2. Either 'modification' OR 'region' (to narrow fitment results)
+- search_by_vehicle REQUIRES:
+  1. Either 'modification' OR 'region' (to narrow fitment results)
+  2. Either 'year' OR 'generation' (to identify the vehicle) —
+     not required when 'modification' is provided
 - Common region slugs: 'usdm' (USA), 'eudm' (Europe), 'jdm' (Japan),
   'cdm' (Canada), 'chdm' (China), 'audm' (Oceania). Full list: list_regions()
 - Most tools accept multiple regions for broader coverage (e.g. ['eudm', 'audm']).

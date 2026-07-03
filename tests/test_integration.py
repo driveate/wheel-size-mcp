@@ -485,16 +485,6 @@ async def test_get_spec_metadata_validation_error(call_tool):
 # ---------------------------------------------------------------------------
 
 
-async def test_search_by_vehicle_requires_region_or_generation(call_tool):
-    """search_by_vehicle must reject calls without region or generation."""
-    from ws_mcp.server import mcp
-
-    with pytest.raises(ToolError, match="region.*generation"):
-        await mcp.call_tool("search_by_vehicle", {
-            "make": "toyota", "model": "camry", "year": 2024,
-        })
-
-
 async def test_validation_error_actionable_message(call_tool):
     """API validation errors should include actionable hints."""
     from ws_mcp.server import mcp

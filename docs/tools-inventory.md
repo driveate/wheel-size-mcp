@@ -178,15 +178,17 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 **Docstring**:
 > Get wheel and tire fitment data for a specific vehicle.
 >
-> REQUIRES TWO conditions:
-> 1. Either 'year' OR 'generation' (to identify the vehicle)
-> 2. Either 'modification' OR 'region' (to narrow fitment results)
+> REQUIRED parameter combination:
+> 1. Either 'modification' OR 'region' (to narrow fitment results)
+> 2. Either 'year' OR 'generation' (to identify the vehicle) —
+>    not required when 'modification' is provided
 >
 > PREREQUISITES — you MUST have valid slugs before calling:
 > - make: lowercase slug from list_makes (e.g. 'toyota', 'land-rover')
 > - model: lowercase slug from list_models (e.g. 'camry', '3-series')
-> - year or generation: from list_years / list_generations
 > - modification or region: from list_modifications / list_regions
+> - year or generation: from list_years / list_generations
+>   (skip when modification is provided)
 > - NOTE: this endpoint accepts only ONE region (unlike other tools)
 >
 > Do NOT guess these values. Call the prerequisite tools first.
@@ -212,7 +214,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 | `limit` | `int` | Results per page (1–50, default 20) |
 | `offset` | `int` | Pagination offset (default 0) |
 
-**In-code validation**: Raises `ToolError` if year/generation or modification/region is missing — with a hint about which tools to call.
+**In-code validation**: Raises `ToolError` if modification/region is missing, or if year/generation is missing while modification is not provided — with a hint about which tools to call.
 
 ---
 

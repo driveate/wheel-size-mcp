@@ -134,15 +134,17 @@ def register(mcp: FastMCP):
     ) -> dict:
         """Get wheel and tire fitment data for a specific vehicle.
 
-        REQUIRES TWO conditions:
-        1. Either 'year' OR 'generation' (to identify the vehicle)
-        2. Either 'modification' OR 'region' (to narrow fitment results)
+        REQUIRED parameter combination:
+        1. Either 'modification' OR 'region' (to narrow fitment results)
+        2. Either 'year' OR 'generation' (to identify the vehicle) —
+           not required when 'modification' is provided
 
         PREREQUISITES — you MUST have valid slugs before calling:
         - make: lowercase slug from list_makes (e.g. 'toyota', 'land-rover')
         - model: lowercase slug from list_models (e.g. 'camry', '3-series')
-        - year or generation: from list_years / list_generations
         - modification or region: from list_modifications / list_regions
+        - year or generation: from list_years / list_generations
+          (skip when modification is provided)
         - NOTE: this endpoint accepts only ONE region (unlike other tools)
 
         Do NOT guess these values. Call the prerequisite tools first.
@@ -154,16 +156,17 @@ def register(mcp: FastMCP):
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests fitment information. Do not call in autonomous loops.
         """
-        if not year and not generation:
-            raise ToolError(
-                "Either 'year' or 'generation' is required to identify the vehicle. "
-                "Use list_years or list_generations to find valid values."
-            )
         if not modification and not region:
             raise ToolError(
                 "Either 'modification' or 'region' is required. "
                 "Use list_modifications to get modification slugs, "
                 "or list_regions for region slugs (e.g. 'usdm', 'eudm')."
+            )
+        if not modification and not year and not generation:
+            raise ToolError(
+                "Either 'year' or 'generation' is required to identify the vehicle "
+                "(not needed when 'modification' is provided). "
+                "Use list_years or list_generations to find valid values."
             )
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model), "year": year,

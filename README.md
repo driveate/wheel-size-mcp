@@ -145,7 +145,7 @@ The MCP server starts automatically when the client launches.
 
 | Tool | Description |
 |------|-------------|
-| `search_by_vehicle` | OEM wheel/tire specs for a vehicle. Requires `region` or `generation`. |
+| `search_by_vehicle` | OEM wheel/tire specs for a vehicle. Requires `modification` or `region`, plus `year` or `generation` (unless `modification` is given). |
 | `search_by_rim` | Find vehicles compatible with a rim (exact specs or min/max ranges). |
 | `search_by_tire` | Find vehicles by metric tire size, with speed/load/staggered filters and refinement facets. |
 | `search_by_hf_tire` | Find vehicles by high-flotation (LT) inch size (e.g. 31x10.50R15). |

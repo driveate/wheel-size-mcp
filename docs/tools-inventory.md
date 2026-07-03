@@ -1,6 +1,6 @@
 # wheel-size-mcp MCP Tools Inventory
 
-21 tools grouped into 4 modules. Each tool wraps a single Wheel Fitment API endpoint (`/v2/...`), except `get_spec_metadata` and `check_*_fitment_for_vehicle`, which add MCP-side logic on top of the API response.
+21 tools grouped into 4 modules. Each tool wraps a single Wheel Fitment API endpoint (`/v2/...`), except `ws_get_spec_metadata` and `ws_check_*_fitment_for_vehicle`, which add MCP-side logic on top of the API response.
 
 ---
 
@@ -8,22 +8,22 @@
 
 Navigation through the vehicle hierarchy. No restrictions — can be called freely.
 
-### Navigation scenarios toward `search_by_vehicle`
+### Navigation scenarios toward `ws_search_by_vehicle`
 
-The catalog is not a linear chain but a flexible hierarchy. Different MCP clients need different selector orders. All 4 scenarios end the same way: `list_modifications` → `search_by_vehicle`.
+The catalog is not a linear chain but a flexible hierarchy. Different MCP clients need different selector orders. All 4 scenarios end the same way: `ws_list_modifications` → `ws_search_by_vehicle`.
 
 ```
 Scenario 1 (basic):
-  list_makes → list_models → list_years → list_modifications → search_by_vehicle
+  ws_list_makes → ws_list_models → ws_list_years → ws_list_modifications → ws_search_by_vehicle
 
 Scenario 2 (year before model):
-  list_makes → list_years(make) → list_models(make, year) → list_modifications → search_by_vehicle
+  ws_list_makes → ws_list_years(make) → ws_list_models(make, year) → ws_list_modifications → ws_search_by_vehicle
 
 Scenario 3 (starting from year):
-  list_years → list_makes(year) → list_models(make, year) → list_modifications → search_by_vehicle
+  ws_list_years → ws_list_makes(year) → ws_list_models(make, year) → ws_list_modifications → ws_search_by_vehicle
 
 Scenario 4 (via generations):
-  list_makes → list_models → list_generations → list_modifications(generation) → search_by_vehicle
+  ws_list_makes → ws_list_models → ws_list_generations → ws_list_modifications(generation) → ws_search_by_vehicle
 ```
 
 **Why the order differs:**
@@ -32,11 +32,11 @@ Scenario 4 (via generations):
 - Scenario 3 — "what was available in 2024?": starts from the year, then picks a make
 - Scenario 4 — for models with a long history (BMW 3 Series): generation instead of year
 
-**Key point**: `list_years` accepts all parameters optionally (`make?`, `model?`), so it can be called at any step. `list_generations` requires `make` + `model`, so it always comes after them.
+**Key point**: `ws_list_years` accepts all parameters optionally (`make?`, `model?`), so it can be called at any step. `ws_list_generations` requires `make` + `model`, so it always comes after them.
 
 ---
 
-### `list_makes`
+### `ws_list_makes`
 
 **API**: `GET /v2/makes/`
 
@@ -45,9 +45,9 @@ Scenario 4 (via generations):
 > Returns slugs and names for all car brands in the database.
 >
 > Common starting point for vehicle fitment lookups, but not the only one —
-> list_years can also be called first (without params) to start from year.
+> ws_list_years can also be called first (without params) to start from year.
 >
-> After getting a make slug, use list_models to find models.
+> After getting a make slug, use ws_list_models to find models.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -60,7 +60,7 @@ Scenario 4 (via generations):
 
 ---
 
-### `list_models`
+### `ws_list_models`
 
 **API**: `GET /v2/models/`
 
@@ -70,19 +70,19 @@ Scenario 4 (via generations):
 >
 > Can be filtered by year to narrow results (e.g. "which Toyota models existed in 2020?").
 >
-> After getting a model slug, use list_years or list_generations next.
+> After getting a model slug, use ws_list_years or ws_list_generations next.
 
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug (e.g. 'toyota'). Use list_makes to find valid slugs. |
+| `make` | `str` | Make slug (e.g. 'toyota'). Use ws_list_makes to find valid slugs. |
 | `year` | `int?` | Filter by year |
 | `region` | `list[str]?` | Region slug(s) (e.g. ['usdm']). Filter models sold in these regions. |
 | `lang` | `str?` | Translate names (e.g. 'ru'). name_en keeps the English original. |
 
 ---
 
-### `list_years`
+### `ws_list_years`
 
 **API**: `GET /v2/years/`
 
@@ -93,7 +93,7 @@ Scenario 4 (via generations):
 > an alternative starting point for navigation (Scenario 3: years first).
 > Can also be called with make only to get years for that brand (Scenario 2).
 >
-> After getting a year, use list_modifications to get trims.
+> After getting a year, use ws_list_modifications to get trims.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -104,15 +104,15 @@ Scenario 4 (via generations):
 
 ---
 
-### `list_generations`
+### `ws_list_generations`
 
 **API**: `GET /v2/generations/`
 
 **Docstring**:
 > List generations for a make/model.
 > Returns generation slugs, names, platform codes, and production spans.
-> Alternative to list_years for models with many generations (e.g. BMW 3 Series).
-> After getting a generation, use list_modifications with the generation slug.
+> Alternative to ws_list_years for models with many generations (e.g. BMW 3 Series).
+> After getting a generation, use ws_list_modifications with the generation slug.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -124,7 +124,7 @@ Scenario 4 (via generations):
 
 ---
 
-### `list_modifications`
+### `ws_list_modifications`
 
 **API**: `GET /v2/modifications/`
 
@@ -135,7 +135,7 @@ Scenario 4 (via generations):
 > One of year or generation is required.
 > Filter by power via horsepower (exact ±2.7 hp) or horsepower_min/max
 > (e.g. "trims over 300 hp" → horsepower_min=300).
-> After getting a modification slug, use search_by_vehicle for fitment data.
+> After getting a modification slug, use ws_search_by_vehicle for fitment data.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -155,7 +155,7 @@ Scenario 4 (via generations):
 
 ---
 
-### `list_regions`
+### `ws_list_regions`
 
 **API**: `GET /v2/regions/`
 
@@ -170,11 +170,11 @@ Scenario 4 (via generations):
 
 ## Search (`tools/search.py`) — 8 tools
 
-Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS) and must not be called in autonomous loops: **search_by_vehicle, search_by_rim, search_by_tire, search_by_hf_tire, check_rim_fitment_for_vehicle, check_tire_fitment_for_vehicle, check_hf_tire_fitment_for_vehicle**.
+Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API ToS) and must not be called in autonomous loops: **ws_search_by_vehicle, ws_search_by_rim, ws_search_by_tire, ws_search_by_hf_tire, ws_check_rim_fitment_for_vehicle, ws_check_tire_fitment_for_vehicle, ws_check_hf_tire_fitment_for_vehicle**.
 
 ---
 
-### `search_by_vehicle`
+### `ws_search_by_vehicle`
 
 **API**: `GET /v2/search/by_model/`
 
@@ -187,10 +187,10 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 >    not required when 'modification' is provided
 >
 > PREREQUISITES — you MUST have valid slugs before calling:
-> - make: lowercase slug from list_makes (e.g. 'toyota', 'land-rover')
-> - model: lowercase slug from list_models (e.g. 'camry', '3-series')
-> - modification or region: from list_modifications / list_regions
-> - year or generation: from list_years / list_generations
+> - make: lowercase slug from ws_list_makes (e.g. 'toyota', 'land-rover')
+> - model: lowercase slug from ws_list_models (e.g. 'camry', '3-series')
+> - modification or region: from ws_list_modifications / ws_list_regions
+> - year or generation: from ws_list_years / ws_list_generations
 >   (skip when modification is provided)
 > - NOTE: this endpoint accepts only ONE region (unlike other tools)
 >
@@ -206,11 +206,11 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug (e.g. 'toyota'). Use list_makes to find valid slugs. |
-| `model` | `str` | Model slug (e.g. 'camry'). Use list_models to find valid slugs. |
+| `make` | `str` | Make slug (e.g. 'toyota'). Use ws_list_makes to find valid slugs. |
+| `model` | `str` | Model slug (e.g. 'camry'). Use ws_list_models to find valid slugs. |
 | `year` | `int?` | Model year |
-| `generation` | `str?` | Generation slug (alternative to year). From list_generations. |
-| `modification` | `str?` | Modification slug from list_modifications. Alternative to region. |
+| `generation` | `str?` | Generation slug (alternative to year). From ws_list_generations. |
+| `modification` | `str?` | Modification slug from ws_list_modifications. Alternative to region. |
 | `region` | `str?` | Single region slug (e.g. 'usdm'). Only ONE region allowed here. |
 | `detail_level` | `"concise" \| "full"` | 'concise' = key specs only, 'full' = all wheel/tire details |
 | `lang` | `str?` | Translate make/model/region names (e.g. 'ru'). |
@@ -221,7 +221,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ---
 
-### `search_by_rim`
+### `ws_search_by_rim`
 
 **API**: `GET /v2/by_rim/search/`
 
@@ -241,7 +241,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests a rim compatibility search. Do not call in autonomous loops.
 >
-> For e-commerce product cards, use find_vehicles_for_rim instead —
+> For e-commerce product cards, use ws_find_vehicles_for_rim instead —
 > it uses geometric backspace calculations for broader, physics-based matching.
 
 **Parameters**:
@@ -270,7 +270,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ---
 
-### `search_by_tire`
+### `ws_search_by_tire`
 
 **API**: `GET /v2/by_tire/search/`
 
@@ -286,7 +286,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > requests a tire compatibility search. Do not call in autonomous loops.
 >
 > This tool accepts metric sizes only. For high-flotation (LT) tires
-> with inch-based sizing (e.g. 31x10.50R15), use search_by_hf_tire.
+> with inch-based sizing (e.g. 31x10.50R15), use ws_search_by_hf_tire.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -310,7 +310,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ---
 
-### `search_by_hf_tire`
+### `ws_search_by_hf_tire`
 
 **API**: `GET /v2/by_hf_tire/search/`
 
@@ -320,7 +320,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > HF tires use inch-based sizing like 31x10.50R15: overall diameter x
 > section width R rim diameter, all in inches. Common on trucks, SUVs,
 > and offroad vehicles. For metric sizes (e.g. 225/45R17) use
-> search_by_tire instead.
+> ws_search_by_tire instead.
 >
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests a tire compatibility search. Do not call in autonomous loops.
@@ -338,7 +338,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ---
 
-### `check_hf_tire_fitment_for_vehicle` (composite)
+### `ws_check_hf_tire_fitment_for_vehicle` (composite)
 
 **API**: `GET /v2/by_hf_tire/search/modifications/` + MCP-side year filtering
 
@@ -349,7 +349,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > returns the vehicle's modifications (trims) where this HF tire size
 > appears as a documented fitment. An EMPTY result means no documented
 > fitment for that combination. Inch-based HF sizes only — for metric
-> sizes use check_tire_fitment_for_vehicle.
+> sizes use ws_check_tire_fitment_for_vehicle.
 >
 > The API has no year parameter, so 'year' is filtered MCP-side against
 > each modification's production range (start_year/end_year); each row
@@ -361,8 +361,8 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug (e.g. 'chevrolet'). Use list_makes to find valid slugs. |
-| `model` | `str` | Model slug (e.g. 'blazer'). Use list_models to find valid slugs. |
+| `make` | `str` | Make slug (e.g. 'chevrolet'). Use ws_list_makes to find valid slugs. |
+| `model` | `str` | Model slug (e.g. 'blazer'). Use ws_list_models to find valid slugs. |
 | `overall_diameter` | `float` | Overall tire diameter in inches (e.g. 31 for 31x10.50R15) |
 | `section_width` | `float` | Tire section width in inches (e.g. 10.5) |
 | `rim_diameter` | `float` | Rim diameter in inches (e.g. 15) |
@@ -372,11 +372,11 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 | `limit` | `int` | Results per page |
 | `offset` | `int` | Pagination offset |
 
-**MCP-side logic**: the same year filtering as `check_rim_fitment_for_vehicle`.
+**MCP-side logic**: the same year filtering as `ws_check_rim_fitment_for_vehicle`.
 
 ---
 
-### `check_rim_fitment_for_vehicle` (composite)
+### `ws_check_rim_fitment_for_vehicle` (composite)
 
 **API**: `GET /v2/by_rim/search/modifications/` + MCP-side year filtering
 
@@ -392,7 +392,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > each modification's production range (start_year/end_year); each row
 > echoes its range so near-misses can be explained.
 >
-> Prefer this over search_by_rim + search_by_vehicle comparison when the
+> Prefer this over ws_search_by_rim + ws_search_by_vehicle comparison when the
 > user names a specific vehicle.
 >
 > IMPORTANT: This is a Search method — only call when a user explicitly
@@ -401,8 +401,8 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug (e.g. 'honda'). Use list_makes to find valid slugs. |
-| `model` | `str` | Model slug (e.g. 'civic'). Use list_models to find valid slugs. |
+| `make` | `str` | Make slug (e.g. 'honda'). Use ws_list_makes to find valid slugs. |
+| `model` | `str` | Model slug (e.g. 'civic'). Use ws_list_models to find valid slugs. |
 | `bolt_pattern` | `str` | Bolt pattern of the rim (e.g. '5x114.3') |
 | `rim_diameter` | `float` | Rim diameter in inches (e.g. 17) |
 | `rim_width` | `float` | Rim width in inches (e.g. 7) |
@@ -418,7 +418,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ---
 
-### `check_tire_fitment_for_vehicle` (composite)
+### `ws_check_tire_fitment_for_vehicle` (composite)
 
 **API**: `GET /v2/by_tire/search/modifications/` + MCP-side year filtering
 
@@ -434,7 +434,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 > each modification's production range (start_year/end_year); each row
 > echoes its range so near-misses can be explained.
 >
-> Prefer this over search_by_tire + search_by_vehicle comparison when the
+> Prefer this over ws_search_by_tire + ws_search_by_vehicle comparison when the
 > user names a specific vehicle.
 >
 > IMPORTANT: This is a Search method — only call when a user explicitly
@@ -443,8 +443,8 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug (e.g. 'honda'). Use list_makes to find valid slugs. |
-| `model` | `str` | Model slug (e.g. 'civic'). Use list_models to find valid slugs. |
+| `make` | `str` | Make slug (e.g. 'honda'). Use ws_list_makes to find valid slugs. |
+| `model` | `str` | Model slug (e.g. 'civic'). Use ws_list_models to find valid slugs. |
 | `section_width` | `int` | Tire section width in mm (e.g. 225) |
 | `aspect_ratio` | `int` | Tire aspect ratio (e.g. 45) |
 | `rim_diameter` | `float` | Rim diameter in inches (e.g. 17) |
@@ -454,11 +454,11 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 | `limit` | `int` | Results per page |
 | `offset` | `int` | Pagination offset |
 
-**MCP-side logic**: the same year filtering as `check_rim_fitment_for_vehicle`.
+**MCP-side logic**: the same year filtering as `ws_check_rim_fitment_for_vehicle`.
 
 ---
 
-### `calculate_upsteps`
+### `ws_calculate_upsteps`
 
 **API**: `GET /v2/upsteps/`
 
@@ -489,7 +489,7 @@ Fitment search. All except `calculate_upsteps` are user-initiated only (API ToS)
 
 ### Shared geometric parameters
 
-All rim/package classified tools (except `find_vehicles_for_tire`) accept a shared set of geometric filters — in the tool tables it is marked with the row "+ shared geometric parameters":
+All rim/package classified tools (except `ws_find_vehicles_for_tire`) accept a shared set of geometric filters — in the tool tables it is marked with the row "+ shared geometric parameters":
 
 | Parameter | Type | Description |
 |----------|-----|----------|
@@ -510,7 +510,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_tires_for_rim`
+### `ws_find_tires_for_rim`
 
 **API**: `GET /v2/classified/by_rim/`
 
@@ -536,14 +536,14 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_vehicles_for_rim`
+### `ws_find_vehicles_for_rim`
 
 **API**: `GET /v2/classified/by_rim/search/`
 
 **Docstring**:
 > Find vehicle generations compatible with a given rim via geometric backspace calculations.
 >
-> Unlike search_by_rim (which does direct 1:1 wheel pair matching),
+> Unlike ws_search_by_rim (which does direct 1:1 wheel pair matching),
 > this endpoint uses advanced 2D geometric filtering based on
 > frontspace/backspace calculations to determine physical fitment.
 > This yields broader results — any vehicle where the rim physically
@@ -558,7 +558,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > beyond the wheel arch.
 >
 > For e-commerce product pages: "This wheel fits: BMW X5, Audi Q7..."
-> To drill into a specific generation, use find_vehicle_modifications_for_rim.
+> To drill into a specific generation, use ws_find_vehicle_modifications_for_rim.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -573,14 +573,14 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_vehicle_modifications_for_rim`
+### `ws_find_vehicle_modifications_for_rim`
 
 **API**: `GET /v2/classified/by_rim/search/modifications/`
 
 **Docstring**:
-> Drill down into individual trims for a generation from find_vehicles_for_rim.
+> Drill down into individual trims for a generation from ws_find_vehicles_for_rim.
 >
-> PREREQUISITES — call find_vehicles_for_rim first to get:
+> PREREQUISITES — call ws_find_vehicles_for_rim first to get:
 > - make, model, generation slugs (from the results)
 > - Use the same rim parameters and tolerances as the parent search
 >
@@ -590,9 +590,9 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug from find_vehicles_for_rim results |
-| `model` | `str` | Model slug from find_vehicles_for_rim results |
-| `generation` | `str` | Generation slug from find_vehicles_for_rim results |
+| `make` | `str` | Make slug from ws_find_vehicles_for_rim results |
+| `model` | `str` | Model slug from ws_find_vehicles_for_rim results |
+| `generation` | `str` | Generation slug from ws_find_vehicles_for_rim results |
 | `bolt_pattern` | `str` | Bolt pattern (e.g. '5x114.3') |
 | `rim_diameter` | `float` | Rim diameter in inches |
 | `rim_width` | `float` | Rim width in inches |
@@ -603,14 +603,14 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_vehicle_modifications_for_package`
+### `ws_find_vehicle_modifications_for_package`
 
 **API**: `GET /v2/classified/by_package/search/modifications/`
 
 **Docstring**:
-> Drill down into individual trims for a generation from find_vehicles_for_package.
+> Drill down into individual trims for a generation from ws_find_vehicles_for_package.
 >
-> PREREQUISITES — call find_vehicles_for_package first to get:
+> PREREQUISITES — call ws_find_vehicles_for_package first to get:
 > - make, model, generation slugs (from the results)
 > - Use the same rim AND tire parameters and tolerances as the parent search
 >
@@ -621,9 +621,9 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `make` | `str` | Make slug from find_vehicles_for_package results |
-| `model` | `str` | Model slug from find_vehicles_for_package results |
-| `generation` | `str` | Generation slug from find_vehicles_for_package results |
+| `make` | `str` | Make slug from ws_find_vehicles_for_package results |
+| `model` | `str` | Model slug from ws_find_vehicles_for_package results |
+| `generation` | `str` | Generation slug from ws_find_vehicles_for_package results |
 | `bolt_pattern` | `str` | Bolt pattern (e.g. '5x114.3') |
 | `rim_diameter` | `float` | Rim diameter in inches |
 | `rim_width` | `float` | Rim width in inches |
@@ -636,7 +636,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_vehicles_for_tire`
+### `ws_find_vehicles_for_tire`
 
 **API**: `GET /v2/classified/by_tire/search/`
 
@@ -659,7 +659,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `find_vehicles_for_package`
+### `ws_find_vehicles_for_package`
 
 **API**: `GET /v2/classified/by_package/search/`
 
@@ -671,7 +671,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > Use sort='fitment' to put the closest matches first.
 >
 > For e-commerce combo/bundle product pages.
-> To drill into a specific generation, use find_vehicle_modifications_for_package.
+> To drill into a specific generation, use ws_find_vehicle_modifications_for_package.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -692,7 +692,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ---
 
-### `get_spec_metadata` (composite)
+### `ws_get_spec_metadata` (composite)
 
 **API**: `GET /v2/spec/metadata/?hints=true` + MCP-side routing hint
 
@@ -732,7 +732,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 - Rim/tire weight estimate
 - Rim width to tire compatibility (for package mode)
 
-**MCP-side logic (`_mcp_routing_hints`)** adds the one hint the API cannot generate because it references MCP tool names: when an offset search yields no matches at any tolerance, it recommends `find_vehicles_for_rim` with the server-suggested `fs_poke`/`bs_push` values.
+**MCP-side logic (`_mcp_routing_hints`)** adds the one hint the API cannot generate because it references MCP tool names: when an offset search yields no matches at any tolerance, it recommends `ws_find_vehicles_for_rim` with the server-suggested `fs_poke`/`bs_push` values.
 
 ---
 
@@ -749,4 +749,4 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 
 **Simple tools (1:1 with API)**: 16
-**Composite tools (API + MCP-side logic)**: 4 (`get_spec_metadata`, `check_rim_fitment_for_vehicle`, `check_tire_fitment_for_vehicle`, `check_hf_tire_fitment_for_vehicle`)
+**Composite tools (API + MCP-side logic)**: 4 (`ws_get_spec_metadata`, `ws_check_rim_fitment_for_vehicle`, `ws_check_tire_fitment_for_vehicle`, `ws_check_hf_tire_fitment_for_vehicle`)

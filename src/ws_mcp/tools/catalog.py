@@ -16,7 +16,7 @@ def register(mcp: FastMCP):
     """Register catalog tools with the MCP server."""
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_makes(
+    async def ws_list_makes(
         year: Annotated[int | None, Field(description="Filter by year (e.g. 2024)")] = None,
         region: Annotated[
             list[str] | None,
@@ -40,9 +40,9 @@ def register(mcp: FastMCP):
         Returns slugs and names for all car brands in the database.
 
         Common starting point for vehicle fitment lookups, but not the only one —
-        list_years can also be called first (without params) to start from year.
+        ws_list_years can also be called first (without params) to start from year.
 
-        After getting a make slug, use list_models to find models.
+        After getting a make slug, use ws_list_models to find models.
         """
         params = {
             "year": year, "region": normalize_regions(region),
@@ -65,8 +65,8 @@ def register(mcp: FastMCP):
         }
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_models(
-        make: Annotated[str, Field(description="Make slug (e.g. 'toyota'). Use list_makes to find valid slugs.")],
+    async def ws_list_models(
+        make: Annotated[str, Field(description="Make slug (e.g. 'toyota'). Use ws_list_makes to find valid slugs.")],
         year: Annotated[int | None, Field(description="Filter by year")] = None,
         region: Annotated[
             list[str] | None,
@@ -83,7 +83,7 @@ def register(mcp: FastMCP):
 
         Can be filtered by year to narrow results (e.g. "which Toyota models existed in 2020?").
 
-        After getting a model slug, use list_years or list_generations next.
+        After getting a model slug, use ws_list_years or ws_list_generations next.
         """
         params = {
             "make": normalize_slug(make), "year": year,
@@ -105,7 +105,7 @@ def register(mcp: FastMCP):
         }
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_years(
+    async def ws_list_years(
         make: Annotated[str | None, Field(description="Make slug")] = None,
         model: Annotated[str | None, Field(description="Model slug")] = None,
         region: Annotated[
@@ -119,7 +119,7 @@ def register(mcp: FastMCP):
         an alternative starting point for navigation (Scenario 3: years first).
         Can also be called with make only to get years for that brand (Scenario 2).
 
-        After getting a year, use list_modifications to get trims.
+        After getting a year, use ws_list_modifications to get trims.
         """
         params = {
             "make": normalize_slug(make) if make else None,
@@ -133,7 +133,7 @@ def register(mcp: FastMCP):
         }
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_generations(
+    async def ws_list_generations(
         make: Annotated[str, Field(description="Make slug")],
         model: Annotated[str, Field(description="Model slug")],
         year: Annotated[int | None, Field(description="Filter by year")] = None,
@@ -145,8 +145,8 @@ def register(mcp: FastMCP):
         """List generations for a make/model.
 
         Returns generation slugs, names, platform codes, and production spans.
-        Alternative to list_years for models with many generations (e.g. BMW 3 Series).
-        After getting a generation, use list_modifications with the generation slug.
+        Alternative to ws_list_years for models with many generations (e.g. BMW 3 Series).
+        After getting a generation, use ws_list_modifications with the generation slug.
         """
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model),
@@ -172,7 +172,7 @@ def register(mcp: FastMCP):
         }
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_modifications(
+    async def ws_list_modifications(
         make: Annotated[str, Field(description="Make slug")],
         model: Annotated[str, Field(description="Model slug")],
         year: Annotated[int | None, Field(description="Model year")] = None,
@@ -217,7 +217,7 @@ def register(mcp: FastMCP):
         One of year or generation is required.
         Filter by power via horsepower (exact ±2.7 hp) or horsepower_min/max
         (e.g. "trims over 300 hp" → horsepower_min=300).
-        After getting a modification slug, use search_by_vehicle for fitment data.
+        After getting a modification slug, use ws_search_by_vehicle for fitment data.
         """
         params = {
             "make": normalize_slug(make),
@@ -255,7 +255,7 @@ def register(mcp: FastMCP):
         }
 
     @mcp.tool(annotations=CATALOG_ANNOTATIONS, tags={"catalog"})
-    async def list_regions() -> dict:
+    async def ws_list_regions() -> dict:
         """List all market regions where vehicles are sold.
 
         Returns region slugs and display names (e.g. usdm=USA, eudm=Europe, jdm=Japan).

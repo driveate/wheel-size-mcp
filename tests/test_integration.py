@@ -15,7 +15,7 @@ pytestmark = pytest.mark.integration
 
 
 async def test_list_makes(call_tool):
-    data = await call_tool("list_makes")
+    data = await call_tool("ws_list_makes")
     assert data["total"] > 200
     make = data["makes"][0]
     assert "slug" in make
@@ -24,13 +24,13 @@ async def test_list_makes(call_tool):
 
 
 async def test_list_makes_filter_by_year(call_tool):
-    data = await call_tool("list_makes", {"year": 2024})
+    data = await call_tool("ws_list_makes", {"year": 2024})
     assert data["total"] > 0
     assert data["total"] < 300  # filtered subset
 
 
 async def test_list_models(call_tool):
-    data = await call_tool("list_models", {"make": "toyota"})
+    data = await call_tool("ws_list_models", {"make": "toyota"})
     assert data["total"] > 100
     model = data["models"][0]
     assert "slug" in model
@@ -40,13 +40,13 @@ async def test_list_models(call_tool):
 
 
 async def test_list_years(call_tool):
-    data = await call_tool("list_years", {"make": "toyota", "model": "camry"})
+    data = await call_tool("ws_list_years", {"make": "toyota", "model": "camry"})
     assert data["total"] > 30
     assert all(isinstance(y, int) for y in data["years"])
 
 
 async def test_list_generations(call_tool):
-    data = await call_tool("list_generations", {"make": "toyota", "model": "camry"})
+    data = await call_tool("ws_list_generations", {"make": "toyota", "model": "camry"})
     assert data["total"] > 10
     gen = data["generations"][0]
     assert "slug" in gen
@@ -59,7 +59,7 @@ async def test_list_generations(call_tool):
 
 
 async def test_list_modifications(call_tool):
-    data = await call_tool("list_modifications", {"make": "toyota", "model": "camry", "year": 2024})
+    data = await call_tool("ws_list_modifications", {"make": "toyota", "model": "camry", "year": 2024})
     assert data["total"] > 0
     mod = data["modifications"][0]
     assert "slug" in mod
@@ -73,7 +73,7 @@ async def test_list_modifications(call_tool):
 
 
 async def test_list_regions(call_tool):
-    data = await call_tool("list_regions")
+    data = await call_tool("ws_list_regions")
     assert data["total"] == 14
     region = data["regions"][0]
     assert "slug" in region
@@ -89,24 +89,24 @@ async def test_list_regions(call_tool):
 async def test_navigation_flow(call_tool):
     """Full catalog chain: makes → models → years → modifications → search."""
     # Step 1: find toyota
-    makes = await call_tool("list_makes")
+    makes = await call_tool("ws_list_makes")
     toyota = next(m for m in makes["makes"] if m["slug"] == "toyota")
     assert toyota["name"] == "Toyota"
 
     # Step 2: find camry
-    models = await call_tool("list_models", {"make": toyota["slug"]})
+    models = await call_tool("ws_list_models", {"make": toyota["slug"]})
     camry = next(m for m in models["models"] if m["slug"] == "camry")
 
     # Step 3: pick a year
-    years = await call_tool("list_years", {"make": "toyota", "model": camry["slug"]})
+    years = await call_tool("ws_list_years", {"make": "toyota", "model": camry["slug"]})
     year = years["years"][0]  # most recent
 
     # Step 4: get modifications
-    mods = await call_tool("list_modifications", {"make": "toyota", "model": "camry", "year": year})
+    mods = await call_tool("ws_list_modifications", {"make": "toyota", "model": "camry", "year": year})
     assert mods["total"] > 0
 
     # Step 5: search fitment (needs region)
-    result = await call_tool("search_by_vehicle", {
+    result = await call_tool("ws_search_by_vehicle", {
         "make": "toyota",
         "model": "camry",
         "year": year,
@@ -129,7 +129,7 @@ async def test_navigation_flow(call_tool):
 
 
 async def test_search_by_vehicle_concise(call_tool):
-    data = await call_tool("search_by_vehicle", {
+    data = await call_tool("ws_search_by_vehicle", {
         "make": "toyota", "model": "camry", "year": 2024, "region": "usdm",
     })
     assert data["total"] > 0
@@ -144,7 +144,7 @@ async def test_search_by_vehicle_concise(call_tool):
 
 
 async def test_search_by_vehicle_full(call_tool):
-    data = await call_tool("search_by_vehicle", {
+    data = await call_tool("ws_search_by_vehicle", {
         "make": "toyota", "model": "camry", "year": 2024,
         "region": "usdm", "detail_level": "full",
     })
@@ -155,7 +155,7 @@ async def test_search_by_vehicle_full(call_tool):
 
 
 async def test_search_by_rim(call_tool):
-    data = await call_tool("search_by_rim", {
+    data = await call_tool("ws_search_by_rim", {
         "bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8,
     })
     assert data["total"] > 0
@@ -166,7 +166,7 @@ async def test_search_by_rim(call_tool):
 
 
 async def test_search_by_tire(call_tool):
-    data = await call_tool("search_by_tire", {
+    data = await call_tool("ws_search_by_tire", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 18,
     })
     assert data["total"] > 0
@@ -177,7 +177,7 @@ async def test_search_by_tire(call_tool):
 
 async def test_check_rim_fitment_for_vehicle(call_tool):
     """Camry on 5x114.3 17x7.5 — known fitment in the local DB."""
-    data = await call_tool("check_rim_fitment_for_vehicle", {
+    data = await call_tool("ws_check_rim_fitment_for_vehicle", {
         "make": "toyota", "model": "camry",
         "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
     })
@@ -191,11 +191,11 @@ async def test_check_rim_fitment_for_vehicle(call_tool):
 
 async def test_check_rim_fitment_for_vehicle_year_filter(call_tool):
     """Year filter keeps only modifications whose production range covers it."""
-    unfiltered = await call_tool("check_rim_fitment_for_vehicle", {
+    unfiltered = await call_tool("ws_check_rim_fitment_for_vehicle", {
         "make": "toyota", "model": "camry",
         "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
     })
-    filtered = await call_tool("check_rim_fitment_for_vehicle", {
+    filtered = await call_tool("ws_check_rim_fitment_for_vehicle", {
         "make": "toyota", "model": "camry",
         "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7.5,
         "year": 2002,
@@ -208,7 +208,7 @@ async def test_check_rim_fitment_for_vehicle_year_filter(call_tool):
 
 async def test_check_tire_fitment_for_vehicle(call_tool):
     """215/50R17 on a Civic — known fitment in the local DB."""
-    data = await call_tool("check_tire_fitment_for_vehicle", {
+    data = await call_tool("ws_check_tire_fitment_for_vehicle", {
         "make": "honda", "model": "civic",
         "section_width": 215, "aspect_ratio": 50, "rim_diameter": 17,
     })
@@ -220,7 +220,7 @@ async def test_check_tire_fitment_for_vehicle(call_tool):
 
 async def test_search_by_tire_facets_live(call_tool):
     """225/45R17 — facets and summary must come back from the live API."""
-    data = await call_tool("search_by_tire", {
+    data = await call_tool("ws_search_by_tire", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
     })
     assert data["total"] > 0
@@ -232,10 +232,10 @@ async def test_search_by_tire_facets_live(call_tool):
 
 async def test_search_by_tire_speed_filter_live(call_tool):
     """speed_symbol filter narrows the result set."""
-    base = await call_tool("search_by_tire", {
+    base = await call_tool("ws_search_by_tire", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
     })
-    filtered = await call_tool("search_by_tire", {
+    filtered = await call_tool("ws_search_by_tire", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 17,
         "speed_symbol": ["H"],
     })
@@ -244,10 +244,10 @@ async def test_search_by_tire_speed_filter_live(call_tool):
 
 async def test_search_by_rim_range_live(call_tool):
     """Range search: 18-19 inch diameter must return at least as many results as exact 18."""
-    exact = await call_tool("search_by_rim", {
+    exact = await call_tool("ws_search_by_rim", {
         "bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8,
     })
-    ranged = await call_tool("search_by_rim", {
+    ranged = await call_tool("ws_search_by_rim", {
         "bolt_pattern": "5x114.3",
         "rim_diameter_min": 18, "rim_diameter_max": 19,
         "rim_width_min": 8, "rim_width_max": 8,
@@ -257,7 +257,7 @@ async def test_search_by_rim_range_live(call_tool):
 
 async def test_list_modifications_horsepower_live(call_tool):
     """horsepower_min filter keeps only powerful trims."""
-    data = await call_tool("list_modifications", {
+    data = await call_tool("ws_list_modifications", {
         "make": "bmw", "model": "x5", "year": 2020, "horsepower_min": 400,
     })
     for m in data["modifications"]:
@@ -268,7 +268,7 @@ async def test_list_modifications_horsepower_live(call_tool):
 
 async def test_search_by_hf_tire(call_tool):
     """31x10.50R15 — classic offroad size, known data in the local DB."""
-    data = await call_tool("search_by_hf_tire", {
+    data = await call_tool("ws_search_by_hf_tire", {
         "overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15,
     })
     assert data["total"] > 0
@@ -279,7 +279,7 @@ async def test_search_by_hf_tire(call_tool):
 
 async def test_check_hf_tire_fitment_for_vehicle(call_tool):
     """31x10.50R15 on a Chevrolet Blazer — known fitment in the local DB."""
-    data = await call_tool("check_hf_tire_fitment_for_vehicle", {
+    data = await call_tool("ws_check_hf_tire_fitment_for_vehicle", {
         "make": "chevrolet", "model": "blazer",
         "overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15,
         "year": 2000,
@@ -291,7 +291,7 @@ async def test_check_hf_tire_fitment_for_vehicle(call_tool):
 
 
 async def test_calculate_upsteps(call_tool):
-    data = await call_tool("calculate_upsteps", {
+    data = await call_tool("ws_calculate_upsteps", {
         "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,
         "section_width": 225, "aspect_ratio": 50,
     })
@@ -325,7 +325,7 @@ RIM_SPEC = {
 
 
 async def test_find_tires_for_rim(call_tool):
-    data = await call_tool("find_tires_for_rim", RIM_SPEC)
+    data = await call_tool("ws_find_tires_for_rim", RIM_SPEC)
     assert data["total"] > 0
     item = data["results"][0]
     assert "tire" in item
@@ -333,7 +333,7 @@ async def test_find_tires_for_rim(call_tool):
 
 
 async def test_find_vehicles_for_rim(call_tool):
-    data = await call_tool("find_vehicles_for_rim", RIM_SPEC)
+    data = await call_tool("ws_find_vehicles_for_rim", RIM_SPEC)
     assert data["total"] > 0
     item = data["results"][0]
     assert "make" in item
@@ -342,7 +342,7 @@ async def test_find_vehicles_for_rim(call_tool):
 
 
 async def test_find_vehicles_for_tire(call_tool):
-    data = await call_tool("find_vehicles_for_tire", {
+    data = await call_tool("ws_find_vehicles_for_tire", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 18,
     })
     assert data["total"] > 0
@@ -352,7 +352,7 @@ async def test_find_vehicles_for_tire(call_tool):
 
 
 async def test_find_vehicles_for_package(call_tool):
-    data = await call_tool("find_vehicles_for_package", {
+    data = await call_tool("ws_find_vehicles_for_package", {
         **RIM_SPEC,
         "section_width": 225, "aspect_ratio": 45,
     })
@@ -363,15 +363,15 @@ async def test_find_vehicles_for_package(call_tool):
 
 
 async def test_classified_drill_down_flow(call_tool):
-    """Chain: find_vehicles_for_rim → pick first generation → drill into modifications."""
+    """Chain: ws_find_vehicles_for_rim → pick first generation → drill into modifications."""
     # Step 1: find vehicles for rim
-    vehicles = await call_tool("find_vehicles_for_rim", RIM_SPEC)
+    vehicles = await call_tool("ws_find_vehicles_for_rim", RIM_SPEC)
     assert vehicles["total"] > 0
 
     first = vehicles["results"][0]
 
     # Step 2: drill down into modifications for that generation
-    mods = await call_tool("find_vehicle_modifications_for_rim", {
+    mods = await call_tool("ws_find_vehicle_modifications_for_rim", {
         "make": first["make"],
         "model": first["model"],
         "generation": first["generation"],
@@ -386,24 +386,24 @@ async def test_classified_drill_down_flow(call_tool):
 
 async def test_find_vehicles_for_rim_sort_fitment(call_tool):
     """sort=fitment must reach the API as 'sort' — sending it as 'ordering' is a 400."""
-    data = await call_tool("find_vehicles_for_rim", {**RIM_SPEC, "sort": "fitment"})
+    data = await call_tool("ws_find_vehicles_for_rim", {**RIM_SPEC, "sort": "fitment"})
     assert data["total"] > 0
     first = data["results"][0]
     assert first["min_fs_delta_mm"] is not None
 
 
 async def test_classified_package_drill_down_flow(call_tool):
-    """Chain: find_vehicles_for_package → pick first generation → drill into modifications."""
+    """Chain: ws_find_vehicles_for_package → pick first generation → drill into modifications."""
     package = {
         **RIM_SPEC,
         "section_width": 215, "aspect_ratio": 55,
     }
-    vehicles = await call_tool("find_vehicles_for_package", package)
+    vehicles = await call_tool("ws_find_vehicles_for_package", package)
     assert vehicles["total"] > 0
 
     first = vehicles["results"][0]
 
-    mods = await call_tool("find_vehicle_modifications_for_package", {
+    mods = await call_tool("ws_find_vehicle_modifications_for_package", {
         "make": first["make"],
         "model": first["model"],
         "generation": first["generation"],
@@ -423,7 +423,7 @@ async def test_classified_package_drill_down_flow(call_tool):
 
 
 async def test_get_spec_metadata_rim_mode(call_tool):
-    data = await call_tool("get_spec_metadata", {
+    data = await call_tool("ws_get_spec_metadata", {
         "rim_diameter": 18, "rim_width": 8,
     })
     assert data["mode"] == "rim"
@@ -437,7 +437,7 @@ async def test_get_spec_metadata_rim_mode(call_tool):
 
 
 async def test_get_spec_metadata_rim_with_offset(call_tool):
-    data = await call_tool("get_spec_metadata", {
+    data = await call_tool("ws_get_spec_metadata", {
         "rim_diameter": 18, "rim_width": 8, "rim_offset": 45,
     })
     assert data["mode"] == "rim"
@@ -449,7 +449,7 @@ async def test_get_spec_metadata_rim_with_offset(call_tool):
 
 
 async def test_get_spec_metadata_tire_mode(call_tool):
-    data = await call_tool("get_spec_metadata", {
+    data = await call_tool("ws_get_spec_metadata", {
         "section_width": 225, "aspect_ratio": 45, "rim_diameter": 18,
     })
     assert data["mode"] == "tire"
@@ -459,7 +459,7 @@ async def test_get_spec_metadata_tire_mode(call_tool):
 
 
 async def test_get_spec_metadata_package_mode(call_tool):
-    data = await call_tool("get_spec_metadata", {
+    data = await call_tool("ws_get_spec_metadata", {
         "rim_diameter": 18, "rim_width": 8, "rim_offset": 40,
         "section_width": 245, "aspect_ratio": 45,
     })
@@ -477,7 +477,7 @@ async def test_get_spec_metadata_validation_error(call_tool):
     from ws_mcp.server import mcp
 
     with pytest.raises(ToolError):
-        await mcp.call_tool("get_spec_metadata", {"rim_diameter": 18})
+        await mcp.call_tool("ws_get_spec_metadata", {"rim_diameter": 18})
 
 
 # ---------------------------------------------------------------------------
@@ -490,14 +490,14 @@ async def test_validation_error_actionable_message(call_tool):
     from ws_mcp.server import mcp
 
     with pytest.raises(ToolError, match="bolt_pattern") as exc_info:
-        await mcp.call_tool("search_by_rim", {
+        await mcp.call_tool("ws_search_by_rim", {
             "bolt_pattern": "invalid", "rim_diameter": 18, "rim_width": 8,
         })
     assert "NxDDD.D" in str(exc_info.value) or "5x114.3" in str(exc_info.value)
 
 
 async def test_empty_results_invalid_make(call_tool):
-    data = await call_tool("list_models", {"make": "nonexistent_brand_xyz"})
+    data = await call_tool("ws_list_models", {"make": "nonexistent_brand_xyz"})
     assert data["total"] == 0
     assert data["models"] == []
 
@@ -506,7 +506,7 @@ async def test_pagination(call_tool):
     rim_params = {"bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8}
 
     # Fetch with small limit
-    page1 = await call_tool("search_by_rim", {**rim_params, "limit": 2, "offset": 0})
+    page1 = await call_tool("ws_search_by_rim", {**rim_params, "limit": 2, "offset": 0})
     assert page1["has_more"] is True
     assert page1["next_offset"] == 2
     assert "hint" in page1
@@ -514,6 +514,6 @@ async def test_pagination(call_tool):
     assert page1["showing"] == "1-2 of " + str(page1["total"])
 
     # Fetch next page
-    page2 = await call_tool("search_by_rim", {**rim_params, "limit": 2, "offset": 2})
+    page2 = await call_tool("ws_search_by_rim", {**rim_params, "limit": 2, "offset": 2})
     assert len(page2["results"]) == 2
     assert page2["showing"].startswith("3-4 of ")

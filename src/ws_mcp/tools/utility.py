@@ -37,7 +37,7 @@ def _mcp_routing_hints(data: dict) -> list[str]:
     if not estimates or not suggested or any(e["vehicles"] for e in estimates):
         return []
     return [
-        f"No offset-based matches. Use find_vehicles_for_rim with "
+        f"No offset-based matches. Use ws_find_vehicles_for_rim with "
         f"fs_poke={suggested['fs_poke']}, bs_push={suggested['bs_push']} "
         f"(or equivalently rim_bst_from={suggested['bs_push']}, "
         f"rim_bst_to={suggested['fs_poke']}) "
@@ -49,7 +49,7 @@ def register(mcp: FastMCP):
     """Register utility tools with the MCP server."""
 
     @mcp.tool(annotations=UTILITY_ANNOTATIONS, tags={"utility"})
-    async def get_spec_metadata(
+    async def ws_get_spec_metadata(
         rim_diameter: Annotated[
             float | None, Field(ge=8, le=30, description="Rim diameter in inches (e.g. 18)")
         ] = None,

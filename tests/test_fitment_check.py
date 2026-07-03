@@ -1,4 +1,4 @@
-"""Unit tests for check_rim_fitment_for_vehicle / check_tire_fitment_for_vehicle.
+"""Unit tests for ws_check_rim_fitment_for_vehicle / ws_check_tire_fitment_for_vehicle.
 
 The search/modifications API endpoints expose no year parameter, so year
 filtering happens MCP-side. No API required — api.get is monkeypatched.
@@ -62,7 +62,7 @@ RIM_ARGS = {
 async def test_no_year_passes_pagination_to_api(fake_api):
     fake_api["rows"] = [_row(f"m{i}", 2001, 2004) for i in range(30)]
     data = await _call(
-        "check_rim_fitment_for_vehicle", {**RIM_ARGS, "limit": 5, "offset": 10}
+        "ws_check_rim_fitment_for_vehicle", {**RIM_ARGS, "limit": 5, "offset": 10}
     )
     assert data["total"] == 30
     assert len(data["results"]) == 5
@@ -82,7 +82,7 @@ async def test_year_filters_by_production_range(fake_api):
         _row("hit-open-start", None, 2004),  # unknown start — not excluded
         _row("hit-boundary", 2002, 2002),
     ]
-    data = await _call("check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2002})
+    data = await _call("ws_check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2002})
     slugs = [i["modification"] for i in data["results"]]
     assert slugs == ["hit-exact", "hit-open-end", "hit-open-start", "hit-boundary"]
     assert data["total"] == 4
@@ -96,7 +96,7 @@ async def test_year_paginates_filtered_list(fake_api):
         for i in range(40)
     ]
     data = await _call(
-        "check_rim_fitment_for_vehicle",
+        "ws_check_rim_fitment_for_vehicle",
         {**RIM_ARGS, "year": 2005, "limit": 5, "offset": 15},
     )
     assert data["total"] == 20  # 20 hits out of 40
@@ -106,7 +106,7 @@ async def test_year_paginates_filtered_list(fake_api):
 
 async def test_year_fetch_cap_adds_truncation_note(fake_api):
     fake_api["rows"] = [_row(f"m{i}", 2000, 2010) for i in range(260)]
-    data = await _call("check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2005})
+    data = await _call("ws_check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2005})
     assert "note" in data
     # scanned exactly the cap: 4 API pages of 50
     fetch_offsets = [c["params"]["offset"] for c in fake_api["calls"]]
@@ -117,7 +117,7 @@ async def test_year_fetch_cap_adds_truncation_note(fake_api):
 async def test_tire_variant_path_and_params(fake_api):
     fake_api["rows"] = [_row("m1", 2016, 2021)]
     data = await _call(
-        "check_tire_fitment_for_vehicle",
+        "ws_check_tire_fitment_for_vehicle",
         {
             "make": "Honda",
             "model": "Civic",
@@ -139,13 +139,13 @@ async def test_tire_variant_path_and_params(fake_api):
 async def test_cb_above_120_passes_through(fake_api):
     """API allows cb 52.1-225 mm — values above 120 must not be rejected MCP-side."""
     fake_api["rows"] = [_row("m1", 2001, 2004)]
-    data = await _call("check_rim_fitment_for_vehicle", {**RIM_ARGS, "cb": 130})
+    data = await _call("ws_check_rim_fitment_for_vehicle", {**RIM_ARGS, "cb": 130})
     assert data["total"] == 1
     assert fake_api["calls"][0]["params"]["cb"] == 130
 
 
 async def test_empty_result_is_valid_no_fitment_answer(fake_api):
     fake_api["rows"] = []
-    data = await _call("check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2020})
+    data = await _call("ws_check_rim_fitment_for_vehicle", {**RIM_ARGS, "year": 2020})
     assert data["total"] == 0
     assert data["results"] == []

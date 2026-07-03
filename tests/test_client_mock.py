@@ -70,7 +70,7 @@ async def test_validation_error_includes_param_hint(client):
     }
     respx.get(f"{BASE}/v2/models/").mock(return_value=httpx.Response(400, json=error))
 
-    with pytest.raises(ToolError, match="list_makes"):
+    with pytest.raises(ToolError, match="ws_list_makes"):
         await client.get("/v2/models/", {"make": "Toyota Motor"})
 
 

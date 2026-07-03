@@ -62,7 +62,7 @@ HF_SIZE = {"overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15}
 
 async def test_search_by_hf_tire_params_and_projection(captured):
     captured["rows"] = [_search_row()]
-    data = await _call("search_by_hf_tire", {**HF_SIZE, "region": ["usdm"]})
+    data = await _call("ws_search_by_hf_tire", {**HF_SIZE, "region": ["usdm"]})
     call = captured["calls"][0]
     assert call["path"] == "/v2/by_hf_tire/search/"
     assert call["params"]["overall_diameter"] == 31
@@ -79,7 +79,7 @@ async def test_search_by_hf_tire_rejects_metric_width():
 
     with pytest.raises(ValidationError, match="section_width"):
         await mcp.call_tool(
-            "search_by_hf_tire",
+            "ws_search_by_hf_tire",
             {"overall_diameter": 31, "section_width": 225, "rim_diameter": 15},
         )
 
@@ -87,7 +87,7 @@ async def test_search_by_hf_tire_rejects_metric_width():
 async def test_check_hf_tire_fitment_year_filter(captured):
     captured["rows"] = [_mod_row(1997, 2005), _mod_row(2006, 2009)]
     data = await _call(
-        "check_hf_tire_fitment_for_vehicle",
+        "ws_check_hf_tire_fitment_for_vehicle",
         {"make": "Chevrolet", "model": "Blazer", **HF_SIZE, "year": 2000},
     )
     call = captured["calls"][0]

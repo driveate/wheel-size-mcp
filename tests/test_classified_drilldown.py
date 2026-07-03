@@ -58,7 +58,7 @@ PACKAGE_ARGS = {
 
 async def test_package_drilldown_path_and_params(captured):
     captured["rows"] = [_row()]
-    data = await _call("find_vehicle_modifications_for_package", PACKAGE_ARGS)
+    data = await _call("ws_find_vehicle_modifications_for_package", PACKAGE_ARGS)
     call = captured["calls"][0]
     assert call["path"] == "/v2/classified/by_package/search/modifications/"
     assert call["params"]["section_width"] == 215
@@ -72,7 +72,7 @@ async def test_package_drilldown_path_and_params(captured):
 async def test_rim_drilldown_maps_slug_not_vehicle_id(captured):
     """The API renamed vehicle_id -> slug; the mapper must use slug."""
     captured["rows"] = [_row()]
-    data = await _call("find_vehicle_modifications_for_rim", {
+    data = await _call("ws_find_vehicle_modifications_for_rim", {
         "make": "byd", "model": "qin-pro", "generation": "773464bf48",
         "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7,
         "rim_offset": 45,
@@ -84,7 +84,7 @@ async def test_rim_drilldown_maps_slug_not_vehicle_id(captured):
 
 async def test_drilldown_open_end_year_renders_present(captured):
     captured["rows"] = [_row(production_end_year=None)]
-    data = await _call("find_vehicle_modifications_for_package", PACKAGE_ARGS)
+    data = await _call("ws_find_vehicle_modifications_for_package", PACKAGE_ARGS)
     assert data["results"][0]["years"] == "2019-present"
 
 
@@ -97,7 +97,7 @@ async def test_classified_sends_sort_not_ordering(captured):
     """The classified sort values (name/fitment/load) belong to the 'sort' param;
     sending them as 'ordering' makes the API reject the request."""
     captured["rows"] = []
-    await _call("find_vehicles_for_rim", {**RIM_SEARCH_ARGS, "sort": "fitment"})
+    await _call("ws_find_vehicles_for_rim", {**RIM_SEARCH_ARGS, "sort": "fitment"})
     params = captured["calls"][0]["params"]
     assert params["sort"] == "fitment"
     assert "ordering" not in params
@@ -105,7 +105,7 @@ async def test_classified_sends_sort_not_ordering(captured):
 
 async def test_classified_geometry_params_passthrough(captured):
     captured["rows"] = []
-    await _call("find_tires_for_rim", {
+    await _call("ws_find_tires_for_rim", {
         **RIM_SEARCH_ARGS,
         "fd": 12, "diameter_range": 1, "fs_poke": 10, "bs_push": 5,
         "od_tolerance": 0.02, "sort": "load",
@@ -121,7 +121,7 @@ async def test_classified_geometry_params_passthrough(captured):
 
 async def test_package_search_accepts_geometry_params(captured):
     captured["rows"] = []
-    await _call("find_vehicles_for_package", {
+    await _call("ws_find_vehicles_for_package", {
         **RIM_SEARCH_ARGS,
         "section_width": 225, "aspect_ratio": 45,
         "fd": 14, "fs_poke": 20, "diameter_range": 2, "sort": "fitment",

@@ -9,27 +9,27 @@ pytestmark = pytest.mark.integration
 
 # Expected fields per catalog tool, keyed by the response list key.
 EXPECTED_FIELDS = {
-    "list_makes": {
+    "ws_list_makes": {
         "key": "makes",
         "args": {},
         "fields": ["slug", "name", "regions"],
     },
-    "list_models": {
+    "ws_list_models": {
         "key": "models",
         "args": {"make": "toyota"},
         "fields": ["slug", "name", "year_ranges", "regions"],
     },
-    "list_years": {
+    "ws_list_years": {
         "key": "years",
         "args": {"make": "toyota", "model": "camry"},
         "fields": None,  # years is a flat list of ints, not dicts
     },
-    "list_generations": {
+    "ws_list_generations": {
         "key": "generations",
         "args": {"make": "toyota", "model": "camry"},
         "fields": ["slug", "name", "platform", "start", "end", "year_ranges", "bodies", "regions", "years"],
     },
-    "list_modifications": {
+    "ws_list_modifications": {
         "key": "modifications",
         "args": {"make": "toyota", "model": "camry", "year": 2024},
         "fields": [
@@ -38,7 +38,7 @@ EXPECTED_FIELDS = {
             "trim_body_types",
         ],
     },
-    "calculate_upsteps": {
+    "ws_calculate_upsteps": {
         "key": "options",
         "args": {
             "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,
@@ -46,7 +46,7 @@ EXPECTED_FIELDS = {
         },
         "fields": ["tire", "rim", "is_oe", "difference"],
     },
-    "search_by_vehicle": {
+    "ws_search_by_vehicle": {
         "key": "results",
         "args": {"make": "toyota", "model": "camry", "year": 2024, "region": "usdm"},
         "fields": [

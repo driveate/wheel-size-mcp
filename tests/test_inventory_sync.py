@@ -17,8 +17,8 @@ DOC = pathlib.Path(__file__).parent.parent / "docs" / "tools-inventory.md"
 
 SHARED_ROW_MARKER = "shared geometric parameters"
 # The shared geometric block in the doc mirrors the module-level Annotated
-# aliases in classified.py; find_tires_for_rim carries the full set in code.
-SHARED_SOURCE_TOOL = "find_tires_for_rim"
+# aliases in classified.py; ws_find_tires_for_rim carries the full set in code.
+SHARED_SOURCE_TOOL = "ws_find_tires_for_rim"
 
 
 def _field_description(node) -> str | None:

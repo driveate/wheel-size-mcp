@@ -22,13 +22,13 @@ _RETRY_AFTER_CAP = 5.0  # seconds, cap for the Retry-After header
 
 # Hints for common parameter errors
 _PARAM_HINTS = {
-    "make": "Use list_makes to find valid make slugs.",
-    "model": "Use list_models(make) to find valid model slugs.",
-    "year": "Use list_years(make, model) to see available years.",
-    "generation": "Use list_generations(make, model) to find valid generation slugs.",
-    "region": "Use list_regions to see valid region slugs (e.g. 'usdm', 'eudm').",
+    "make": "Use ws_list_makes to find valid make slugs.",
+    "model": "Use ws_list_models(make) to find valid model slugs.",
+    "year": "Use ws_list_years(make, model) to see available years.",
+    "generation": "Use ws_list_generations(make, model) to find valid generation slugs.",
+    "region": "Use ws_list_regions to see valid region slugs (e.g. 'usdm', 'eudm').",
     "bolt_pattern": "Format: NxDDD.D (e.g. '5x114.3', '4x100').",
-    "modification": "Use list_modifications(make, model, year) to find valid slugs.",
+    "modification": "Use ws_list_modifications(make, model, year) to find valid slugs.",
 }
 
 

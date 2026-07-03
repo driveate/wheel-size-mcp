@@ -2,88 +2,88 @@
   "_description": "Test question library for MCP server evaluation. Each question tests specific tools/workflows and expected LLM behavior. The 'coverage_gaps' section tracks questions the system can NOT fully answer yet — move entries out of it as the blocking work (P3-P5) ships. Last coverage audit: 2026-06-11, 21 tools.",
 
   "catalog_flow": {
-    "_description": "Questions that exercise the catalog navigation chain (list_makes → list_models → list_years → list_generations → list_modifications)",
+    "_description": "Questions that exercise the catalog navigation chain (ws_list_makes → ws_list_models → ws_list_years → ws_list_generations → ws_list_modifications)",
     "questions": [
       {
         "id": "cat-01",
         "question": "What Toyota models are available for 2024?",
-        "expected_tools": ["list_models"],
+        "expected_tools": ["ws_list_models"],
         "expected_params": {"make": "toyota", "year": 2024},
         "tests": "Correct slug normalization, year filtering"
       },
       {
         "id": "cat-02",
         "question": "What years was the BMW 3 Series made?",
-        "expected_tools": ["list_makes", "list_years"],
+        "expected_tools": ["ws_list_makes", "ws_list_years"],
         "expected_params": {"make": "bmw", "model": "3-series"},
         "tests": "Hyphenated model slug resolution"
       },
       {
         "id": "cat-03",
         "question": "Show me all generations of the Mercedes C-Class",
-        "expected_tools": ["list_generations"],
+        "expected_tools": ["ws_list_generations"],
         "expected_params": {"make": "mercedes-benz", "model": "c-class"},
         "tests": "Multi-hyphen slug for make and model"
       },
       {
         "id": "cat-04",
         "question": "What trims does the 2023 Honda Civic come in?",
-        "expected_tools": ["list_modifications"],
+        "expected_tools": ["ws_list_modifications"],
         "expected_params": {"make": "honda", "model": "civic", "year": 2023},
         "tests": "Modification listing with year filter"
       },
       {
         "id": "cat-05",
         "question": "List all car brands available in Japan",
-        "expected_tools": ["list_makes"],
+        "expected_tools": ["ws_list_makes"],
         "expected_params": {"region": ["jdm"]},
         "tests": "Region filtering on makes"
       },
       {
         "id": "cat-06",
         "question": "What Land Rover models exist?",
-        "expected_tools": ["list_models"],
+        "expected_tools": ["ws_list_models"],
         "expected_params": {"make": "land-rover"},
         "tests": "Two-word brand slug normalization"
       },
       {
         "id": "cat-07",
         "question": "What diesel trims does the 2022 BMW X5 have?",
-        "expected_tools": ["list_modifications"],
+        "expected_tools": ["ws_list_modifications"],
         "expected_params": {"make": "bmw", "model": "x5", "year": 2022, "fuel": "diesel"},
         "tests": "Fuel type filtering in modifications"
       },
       {
         "id": "cat-08",
         "question": "Show me the V6 trims of the 2024 Toyota Camry",
-        "expected_tools": ["list_modifications"],
+        "expected_tools": ["ws_list_modifications"],
         "expected_params": {"make": "toyota", "model": "camry", "year": 2024, "trim": "V6"},
         "tests": "Trim name fuzzy filtering"
       },
       {
         "id": "cat-09",
         "question": "What regions is the Ford F-150 sold in?",
-        "expected_tools": ["list_modifications"],
+        "expected_tools": ["ws_list_modifications"],
         "tests": "Regions discovery from modification data"
       },
       {
         "id": "cat-10",
         "question": "What Porsche 911 generations are there?",
-        "expected_tools": ["list_generations"],
+        "expected_tools": ["ws_list_generations"],
         "expected_params": {"make": "porsche", "model": "911"},
         "tests": "Generation flow for long-running model"
       },
       {
         "id": "cat-11",
         "question": "Show me BMW X5 trims with more than 300 horsepower",
-        "expected_tools": ["list_modifications"],
+        "expected_tools": ["ws_list_modifications"],
         "expected_params": {"make": "bmw", "model": "x5", "horsepower_min": 300},
         "tests": "Horsepower filtering (was gap-08, unblocked by P5)"
       },
       {
         "id": "cat-12",
         "question": "Покажи модели Тойоты с переводом названий на русский",
-        "expected_tools": ["list_models"],
+        "expected_tools": ["ws_list_models"],
         "expected_params": {"make": "toyota", "lang": "ru"},
         "tests": "Localized catalog names via lang (was gap-09, unblocked by P5)"
       }
@@ -96,95 +96,95 @@
       {
         "id": "fit-01",
         "question": "What are the OEM wheel specs for a 2024 Toyota Camry?",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Basic fitment lookup — should discover trims, pick USDM by default"
       },
       {
         "id": "fit-02",
         "question": "What are the OEM wheel specs for a 2024 Toyota Camry? I am from Australia",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "audm"},
         "tests": "Region inference from natural language (Australia → audm)"
       },
       {
         "id": "fit-03",
         "question": "What are the OEM wheel specs for a 2024 Toyota Camry? I am from Russia",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "russia"},
         "tests": "Russia region — different trims and generations available"
       },
       {
         "id": "fit-04",
         "question": "What wheels come on a 2023 BMW M3?",
-        "expected_tools": ["list_models", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_models", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Performance car — expect staggered setup (different front/rear)"
       },
       {
         "id": "fit-05",
         "question": "What are the factory wheel options for a 2022 Ford F-150?",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Truck with many trims — should handle large modification list"
       },
       {
         "id": "fit-06",
         "question": "Stock tire size for a 2024 Tesla Model 3",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "EV fitment — electric vehicle specific data"
       },
       {
         "id": "fit-07",
         "question": "What bolt pattern does a 2020 Honda Accord use?",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Specific spec extraction from fitment data (bolt_pattern)"
       },
       {
         "id": "fit-08",
         "question": "OEM wheel specs for a 2015 Porsche 911 Turbo S",
-        "expected_tools": ["list_generations", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_generations", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Generation flow for Porsche — trim_level filtering for 'Turbo S'"
       },
       {
         "id": "fit-09",
         "question": "What size tires does a 2024 Hyundai Tucson use in Europe?",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "eudm"},
         "tests": "European market, non-luxury brand"
       },
       {
         "id": "fit-10",
         "question": "Factory wheel specs for a 2023 Subaru WRX, Canadian market",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "cdm"},
         "tests": "Canadian market — should know cdm slug"
       },
       {
         "id": "fit-11",
         "question": "Compare wheel specs between a 2024 Camry LE and XSE",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
-        "tests": "Multi-trim comparison — should call search_by_vehicle multiple times"
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
+        "tests": "Multi-trim comparison — should call ws_search_by_vehicle multiple times"
       },
       {
         "id": "fit-12",
         "question": "What are the wheel specs for the latest Range Rover Sport?",
-        "expected_tools": ["list_years", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_years", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Two-word brand + 'latest' year inference"
       },
       {
         "id": "fit-13",
         "question": "Wheel specs for a 2019 Mercedes-AMG C63 S",
-        "expected_tools": ["list_models", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_models", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "AMG sub-brand — model slug resolution (c-class-amg or c63-amg)"
       },
       {
         "id": "fit-14",
         "question": "I have a 2021 Mazda CX-5, what are my stock wheel options?",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "First person phrasing, alphanumeric model name"
       },
       {
         "id": "fit-15",
         "question": "Штатные диски на Toyota Camry 2024 года, российский рынок",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "russia"},
         "tests": "Russian language input — should still resolve correctly"
       }
@@ -197,41 +197,41 @@
       {
         "id": "rim-01",
         "question": "Which vehicles fit 5x114.3 18x8 ET35 rims?",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "expected_params": {"bolt_pattern": "5x114.3", "rim_diameter": 18, "rim_width": 8, "rim_offset": 35},
         "tests": "Standard reverse rim search"
       },
       {
         "id": "rim-02",
         "question": "I have 5x112 19x8.5 ET45 wheels. What cars can I put them on?",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "tests": "First person, casual phrasing"
       },
       {
         "id": "rim-03",
         "question": "What European cars fit 5x120 18x9 ET30 rims?",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "expected_params": {"region": ["eudm"]},
         "tests": "Region-filtered rim search"
       },
       {
         "id": "rim-04",
         "question": "Will 5x114.3 17x7 ET40 rims fit a 2020 Honda Civic?",
-        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle"],
         "expected_params": {"make": "honda", "model": "civic", "bolt_pattern": "5x114.3", "rim_diameter": 17, "rim_width": 7, "rim_offset": 40, "year": 2020},
-        "tests": "Direct fitment check — one call, NOT search_by_rim + search_by_vehicle comparison"
+        "tests": "Direct fitment check — one call, NOT ws_search_by_rim + ws_search_by_vehicle comparison"
       },
       {
         "id": "rim-05",
         "question": "How common are 18x8 ET35 rims? What bolt patterns use them?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "expected_params": {"rim_diameter": 18, "rim_width": 8, "rim_offset": 35},
         "tests": "Metadata query — population stats and hints"
       },
       {
         "id": "rim-06",
         "question": "Find vehicles that fit 18 or 19 inch wheels, width 8-9, ET between 30 and 45, 5x114.3",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "expected_params": {"rim_diameter_min": 18, "rim_diameter_max": 19, "rim_width_min": 8, "rim_width_max": 9, "rim_offset_min": 30, "rim_offset_max": 45},
         "tests": "Range-based rim search (was gap-06, unblocked by P5)"
       }
@@ -244,77 +244,77 @@
       {
         "id": "tire-01",
         "question": "What cars use 225/45R17 tires?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "expected_params": {"section_width": 225, "aspect_ratio": 45, "rim_diameter": 17},
         "tests": "Standard tire size parsing"
       },
       {
         "id": "tire-02",
         "question": "Which vehicles use 265/70R17 tires? Probably trucks right?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "tests": "Larger tire — should return SUVs/trucks"
       },
       {
         "id": "tire-03",
         "question": "I found a set of 245/40R18 tires on sale. What cars would they fit?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "tests": "Casual shopping scenario"
       },
       {
         "id": "tire-04",
         "question": "What cars use 225/45R17 tires with at least a V speed rating and load index 91+?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "expected_params": {"speed_symbol_min": "V", "load_index_min": 91},
         "tests": "Performance-rating filters (was gap-04, unblocked by P5)"
       },
       {
         "id": "tire-05",
         "question": "Which cars run a staggered setup on 255/35R19?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "expected_params": {"fitment": "staggered"},
         "tests": "Staggered/square filter (was gap-05, unblocked by P5)"
       },
       {
         "id": "tire-06",
         "question": "What cars use 225/45R17 tires? What speed ratings do they need?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "tests": "Facets usage — answer the second part from facets.speed_symbol without extra calls"
       }
     ]
   },
 
   "direct_fitment_check": {
-    "_description": "One-call fitment verification for a named vehicle (check_* tools, added 2026-06)",
+    "_description": "One-call fitment verification for a named vehicle (ws_check_* tools, added 2026-06)",
     "questions": [
       {
         "id": "chk-01",
         "question": "Will 5x112 18x8 ET45 wheels fit a 2019 VW Golf GTI?",
-        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle"],
         "tests": "Basic direct rim check with year — MCP-side year filtering"
       },
       {
         "id": "chk-02",
         "question": "Do 235/40R18 tires fit a 2021 Subaru WRX?",
-        "expected_tools": ["check_tire_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_tire_fitment_for_vehicle"],
         "expected_params": {"make": "subaru", "model": "wrx", "section_width": 235, "aspect_ratio": 40, "rim_diameter": 18, "year": 2021},
         "tests": "Direct tire check with year"
       },
       {
         "id": "chk-03",
         "question": "Will 3x98 13x5 ET35 rims fit a 2020 Honda Civic?",
-        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle"],
         "tests": "Negative case — empty result must be interpreted as 'no documented fitment', not an error"
       },
       {
         "id": "chk-04",
         "question": "I have 5x114.3 17x7.5 ET45 wheels. Will they fit a 1999 Toyota Camry? And a 2003 one?",
-        "expected_tools": ["check_rim_fitment_for_vehicle", "check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle", "ws_check_rim_fitment_for_vehicle"],
         "tests": "Year near-miss explanation — rows echo start_year/end_year so the LLM can explain which generations match"
       },
       {
         "id": "chk-05",
         "question": "Какие комплектации Камри 2002 года подходят под диски 5x114.3 17 на 7.5?",
-        "expected_tools": ["check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle"],
         "tests": "Russian language direct check — trim-level granularity of the answer"
       }
     ]
@@ -326,27 +326,27 @@
       {
         "id": "hf-01",
         "question": "What vehicles use 31x10.50R15 tires?",
-        "expected_tools": ["search_by_hf_tire"],
+        "expected_tools": ["ws_search_by_hf_tire"],
         "expected_params": {"overall_diameter": 31, "section_width": 10.5, "rim_diameter": 15},
-        "tests": "HF size parsing — must NOT call metric search_by_tire"
+        "tests": "HF size parsing — must NOT call metric ws_search_by_tire"
       },
       {
         "id": "hf-02",
         "question": "Will 31x10.50R15 tires fit my 2000 Chevy Blazer?",
-        "expected_tools": ["check_hf_tire_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_hf_tire_fitment_for_vehicle"],
         "expected_params": {"make": "chevrolet", "model": "blazer", "year": 2000},
         "tests": "Direct HF fitment check with year"
       },
       {
         "id": "hf-03",
         "question": "I'm looking at 35x12.5R17 mud tires. How common is that size and what trucks run it?",
-        "expected_tools": ["get_spec_metadata", "search_by_hf_tire"],
+        "expected_tools": ["ws_get_spec_metadata", "ws_search_by_hf_tire"],
         "tests": "HF metadata (overall_diameter + inch section_width) then search"
       },
       {
         "id": "hf-04",
         "question": "What cars use 225/45R17 tires? And what about 31x10.5R15?",
-        "expected_tools": ["search_by_tire", "search_by_hf_tire"],
+        "expected_tools": ["ws_search_by_tire", "ws_search_by_hf_tire"],
         "tests": "Mixed metric + HF in one question — correct tool per size system"
       }
     ]
@@ -358,26 +358,26 @@
       {
         "id": "up-01",
         "question": "Calculate plus-size options for 225/50R17 on 7Jx17 ET40",
-        "expected_tools": ["calculate_upsteps"],
+        "expected_tools": ["ws_calculate_upsteps"],
         "expected_params": {"rim_diameter": 17, "rim_width": 7, "rim_offset": 40, "section_width": 225, "aspect_ratio": 50},
         "tests": "Standard plus-sizing from OEM spec"
       },
       {
         "id": "up-02",
         "question": "I have 215/55R17 tires on my Camry (7.5Jx17 ET45). What's the next size up?",
-        "expected_tools": ["calculate_upsteps"],
+        "expected_tools": ["ws_calculate_upsteps"],
         "tests": "Conversational upstep request with vehicle context"
       },
       {
         "id": "up-03",
         "question": "What tire size should I use if I upgrade from 17\" to 19\" wheels on my car with 225/45R17?",
-        "expected_tools": ["calculate_upsteps"],
+        "expected_tools": ["ws_calculate_upsteps"],
         "tests": "Implied plus-2 sizing request"
       },
       {
         "id": "up-04",
         "question": "What's the biggest wheel upgrade for 225/50R17 on 7Jx17 ET40 keeping overall tire diameter within 2%?",
-        "expected_tools": ["calculate_upsteps"],
+        "expected_tools": ["ws_calculate_upsteps"],
         "expected_params": {"do_max": 2},
         "tests": "Tight diameter tolerance via do_max (was gap-07, unblocked by P5)"
       }
@@ -390,57 +390,57 @@
       {
         "id": "cls-01",
         "question": "Generate a product card for a 5x114.3 18x8 ET35 wheel showing all compatible vehicles",
-        "expected_tools": ["get_spec_metadata", "find_vehicles_for_rim"],
+        "expected_tools": ["ws_get_spec_metadata", "ws_find_vehicles_for_rim"],
         "tests": "Full product card workflow — metadata + vehicle list"
       },
       {
         "id": "cls-02",
         "question": "What tire sizes work with a 5x114.3 18x8 ET40 wheel?",
-        "expected_tools": ["find_tires_for_rim"],
+        "expected_tools": ["ws_find_tires_for_rim"],
         "tests": "Tire compatibility for rim"
       },
       {
         "id": "cls-03",
         "question": "Which cars fit a 5x112 19x8.5 ET45 rim with 245/40R19 tires?",
-        "expected_tools": ["find_vehicles_for_package"],
+        "expected_tools": ["ws_find_vehicles_for_package"],
         "tests": "Package (rim + tire) classified search"
       },
       {
         "id": "cls-04",
         "question": "Show me all BMW trims that fit a 5x120 18x8 ET30 wheel",
-        "expected_tools": ["find_vehicles_for_rim", "find_vehicle_modifications_for_rim"],
+        "expected_tools": ["ws_find_vehicles_for_rim", "ws_find_vehicle_modifications_for_rim"],
         "tests": "Drill-down: vehicles → specific trims for one make"
       },
       {
         "id": "cls-05",
         "question": "What vehicles use 225/45R17 tires? I need this for a tire product page",
-        "expected_tools": ["find_vehicles_for_tire"],
-        "tests": "E-commerce context should trigger classified tool, not search_by_tire"
+        "expected_tools": ["ws_find_vehicles_for_tire"],
+        "tests": "E-commerce context should trigger classified tool, not ws_search_by_tire"
       },
       {
         "id": "cls-06",
         "question": "Build a fitment list for this wheel: 5x100, 17x7, ET45, center bore 56.1",
-        "expected_tools": ["find_vehicles_for_rim"],
+        "expected_tools": ["ws_find_vehicles_for_rim"],
         "expected_params": {"bolt_pattern": "5x100", "rim_diameter": 17, "rim_width": 7, "rim_offset": 45, "cb": 56.1},
         "tests": "Centre bore parameter usage"
       },
       {
         "id": "cls-07",
         "question": "Show me all BMW trims that fit a 5x120 19x8.5 ET35 rim with 255/35R19 tires",
-        "expected_tools": ["find_vehicles_for_package", "find_vehicle_modifications_for_package"],
+        "expected_tools": ["ws_find_vehicles_for_package", "ws_find_vehicle_modifications_for_package"],
         "tests": "Package drill-down chain: generations → specific trims (was gap-01, unblocked by P3)"
       },
       {
         "id": "cls-08",
         "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",
-        "expected_tools": ["find_vehicles_for_rim"],
+        "expected_tools": ["ws_find_vehicles_for_rim"],
         "expected_params": {"sort": "fitment"},
         "tests": "Classified sort param (was gap-02, unblocked by P4)"
       },
       {
         "id": "cls-09",
         "question": "What tires fit my 5x114.3 17x7 ET45 rim? Also show options if I went an inch up or down",
-        "expected_tools": ["find_tires_for_rim"],
+        "expected_tools": ["ws_find_tires_for_rim"],
         "expected_params": {"diameter_range": 1},
         "tests": "Diameter range widening ±1 inch (was gap-03, unblocked by P4)"
       }
@@ -453,32 +453,32 @@
       {
         "id": "meta-01",
         "question": "Is 5x114.3 18x8 ET35 a common wheel spec?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "tests": "Population stats and commonality assessment"
       },
       {
         "id": "meta-02",
         "question": "What can you tell me about 225/45R17 tires? How popular are they?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "expected_params": {"section_width": 225, "aspect_ratio": 45, "rim_diameter": 17},
         "tests": "Tire mode metadata with population hints"
       },
       {
         "id": "meta-03",
         "question": "I'm considering 20x9 ET25 wheels with 275/35R20 tires. Is that a good combo?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "tests": "Package mode — rim + tire combined analysis"
       },
       {
         "id": "meta-04",
         "question": "Are 18x9.5 ET22 wheels mostly used on the front or rear?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "tests": "Axle usage hints from metadata"
       },
       {
         "id": "meta-05",
         "question": "What bolt patterns are most common for 17x8 wheels?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "expected_params": {"rim_diameter": 17, "rim_width": 8},
         "tests": "Bolt pattern population stats without offset"
       }
@@ -491,43 +491,43 @@
       {
         "id": "complex-01",
         "question": "I have a 2020 Honda Civic. Can I use wheels from a Toyota Camry?",
-        "expected_tools": ["search_by_vehicle", "check_rim_fitment_for_vehicle"],
+        "expected_tools": ["ws_search_by_vehicle", "ws_check_rim_fitment_for_vehicle"],
         "tests": "Cross-vehicle: get Camry OEM rim specs, then direct-check them against the Civic"
       },
       {
         "id": "complex-02",
         "question": "Find me aftermarket wheel options for a 2023 Subaru WRX. I want to go one size up from stock",
-        "expected_tools": ["search_by_vehicle", "calculate_upsteps"],
+        "expected_tools": ["ws_search_by_vehicle", "ws_calculate_upsteps"],
         "tests": "Get OEM specs first, then calculate plus-1"
       },
       {
         "id": "complex-03",
         "question": "I'm building a product page for a 5x114.3 18x8 ET45 wheel. Give me everything: metadata, compatible vehicles, and tire options",
-        "expected_tools": ["get_spec_metadata", "find_vehicles_for_rim", "find_tires_for_rim"],
+        "expected_tools": ["ws_get_spec_metadata", "ws_find_vehicles_for_rim", "ws_find_tires_for_rim"],
         "tests": "Full product card workflow with all data points"
       },
       {
         "id": "complex-04",
         "question": "Compare the wheel specs of the 2024 Toyota Camry across USA, Europe, and Australian markets",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
-        "tests": "Multi-region comparison — three separate search_by_vehicle calls"
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
+        "tests": "Multi-region comparison — three separate ws_search_by_vehicle calls"
       },
       {
         "id": "complex-05",
         "question": "What's the biggest wheel I can fit on a 2022 Mazda MX-5 without changing the overall diameter?",
-        "expected_tools": ["search_by_vehicle", "calculate_upsteps"],
+        "expected_tools": ["ws_search_by_vehicle", "ws_calculate_upsteps"],
         "tests": "OEM lookup → max upstep calculation"
       },
       {
         "id": "complex-06",
         "question": "I found 5x114.3 19x8.5 ET35 wheels at a junkyard. Will they fit my 2021 RAV4? What tires should I get?",
-        "expected_tools": ["check_rim_fitment_for_vehicle", "find_tires_for_rim"],
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle", "ws_find_tires_for_rim"],
         "tests": "Direct fitment check + tire recommendation for non-OEM wheel"
       },
       {
         "id": "complex-07",
         "question": "Mitshubishi colt 1.3 2011. 185/55x15 and 195/45x17 ?",
-        "expected_tools": ["check_tire_fitment_for_vehicle", "check_tire_fitment_for_vehicle"],
+        "expected_tools": ["ws_check_tire_fitment_for_vehicle", "ws_check_tire_fitment_for_vehicle"],
         "tests": "Typo in make + two tire sizes — direct check per size, explain which fits"
       }
     ]
@@ -549,14 +549,14 @@
       {
         "id": "edge-03",
         "question": "What fits 4x100 15x6 ET45 rims in the Chinese market?",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "expected_params": {"region": ["chdm"]},
         "tests": "Chinese market region slug (chdm)"
       },
       {
         "id": "edge-04",
         "question": "OEM wheels for a 1985 Toyota Camry",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Very old vehicle — data may be sparse"
       },
       {
@@ -567,32 +567,32 @@
       {
         "id": "edge-06",
         "question": "Will 22x10 ET-15 wheels fit any car?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "tests": "Extreme offset (negative) — unusual spec handling"
       },
       {
         "id": "edge-07",
         "question": "Wheel specs for a 2024 Alfa Romeo Giulia Quadrifoglio",
-        "expected_tools": ["list_makes", "list_models", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_makes", "ws_list_models", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Multi-word brand + trim level slug resolution"
       },
       {
         "id": "edge-08",
         "question": "What wheel specs for 2025 Kia EV6? I'm in Israel",
-        "expected_tools": ["list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_modifications", "ws_search_by_vehicle"],
         "expected_params_search": {"region": "medm"},
         "tests": "Israel → medm region mapping (non-obvious)"
       },
       {
         "id": "edge-09",
         "question": "Диски на Ладу Весту 2023",
-        "expected_tools": ["list_makes", "list_models", "list_modifications", "search_by_vehicle"],
+        "expected_tools": ["ws_list_makes", "ws_list_models", "ws_list_modifications", "ws_search_by_vehicle"],
         "tests": "Russian language, domestic brand (Lada Vesta)"
       },
       {
         "id": "edge-10",
         "question": "Show me page 2 of the results for vehicles that fit 5x114.3 18x8 ET35",
-        "expected_tools": ["search_by_rim"],
+        "expected_tools": ["ws_search_by_rim"],
         "expected_params": {"offset": 20},
         "tests": "Pagination — should use offset parameter"
       }
@@ -605,38 +605,38 @@
       {
         "id": "sel-01",
         "question": "What vehicles fit this rim? I'm building an e-commerce product page",
-        "expected_tools": ["find_vehicles_for_rim"],
-        "tests": "E-commerce context → classified tool, NOT search_by_rim"
+        "expected_tools": ["ws_find_vehicles_for_rim"],
+        "tests": "E-commerce context → classified tool, NOT ws_search_by_rim"
       },
       {
         "id": "sel-02",
         "question": "Just curious — what cars use 225/45R17 tires?",
-        "expected_tools": ["search_by_tire"],
+        "expected_tools": ["ws_search_by_tire"],
         "tests": "Casual user query → search tool, NOT classified"
       },
       {
         "id": "sel-03",
         "question": "Before I search, tell me about 19x8.5 ET35 — is it a popular size?",
-        "expected_tools": ["get_spec_metadata"],
+        "expected_tools": ["ws_get_spec_metadata"],
         "tests": "Pre-search intelligence — metadata only, no search"
       },
       {
         "id": "sel-04",
         "question": "What are the generations of the BMW 3 Series? Then show me the E46",
-        "expected_tools": ["list_generations", "list_modifications"],
+        "expected_tools": ["ws_list_generations", "ws_list_modifications"],
         "tests": "Two-step catalog navigation using generation flow"
       },
       {
         "id": "sel-05",
         "question": "Will these 5x120 19x9 ET30 wheels fit my 2022 BMW M4?",
-        "expected_tools": ["check_rim_fitment_for_vehicle"],
-        "tests": "Named vehicle → direct check tool, NOT search_by_rim (no vehicle filter) or find_vehicles_for_rim (e-commerce)"
+        "expected_tools": ["ws_check_rim_fitment_for_vehicle"],
+        "tests": "Named vehicle → direct check tool, NOT ws_search_by_rim (no vehicle filter) or ws_find_vehicles_for_rim (e-commerce)"
       },
       {
         "id": "sel-06",
         "question": "What vehicles run 33x12.5R20 tires?",
-        "expected_tools": ["search_by_hf_tire"],
-        "tests": "Inch-based HF size → HF tool, NOT metric search_by_tire"
+        "expected_tools": ["ws_search_by_hf_tire"],
+        "tests": "Inch-based HF size → HF tool, NOT metric ws_search_by_tire"
       }
     ]
   },
@@ -648,7 +648,7 @@
         "id": "gap-10",
         "question": "What bolt patterns exist for wheels with 5 stud holes and PCD around 114 mm?",
         "blocked_by": "deferred — /v2/by_rim/bp/ lister (stud_holes/pcd filters) not wrapped",
-        "workaround": "get_spec_metadata population stats partially cover this",
+        "workaround": "ws_get_spec_metadata population stats partially cover this",
         "tests": "Bolt pattern discovery by stud count"
       }
     ],
@@ -680,7 +680,7 @@
       {
         "id": "oos-05",
         "question": "How much do OEM Camry wheels weigh and what do replicas cost?",
-        "reason": "Weight estimates exist (get_spec_metadata est_weight_kg) but prices do not",
+        "reason": "Weight estimates exist (ws_get_spec_metadata est_weight_kg) but prices do not",
         "expected_behavior": "Give the weight estimate with its 'cast aluminum estimate' caveat; decline pricing"
       }
     ]

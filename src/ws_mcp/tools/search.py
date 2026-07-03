@@ -108,15 +108,15 @@ def register(mcp: FastMCP):
     """Register search tools with the MCP server."""
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def search_by_vehicle(
-        make: Annotated[str, Field(description="Make slug (e.g. 'toyota'). Use list_makes to find valid slugs.")],
-        model: Annotated[str, Field(description="Model slug (e.g. 'camry'). Use list_models to find valid slugs.")],
+    async def ws_search_by_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'toyota'). Use ws_list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'camry'). Use ws_list_models to find valid slugs.")],
         year: Annotated[int | None, Field(ge=1950, le=2027, description="Model year")] = None,
         generation: Annotated[
-            str | None, Field(description="Generation slug (alternative to year). From list_generations.")
+            str | None, Field(description="Generation slug (alternative to year). From ws_list_generations.")
         ] = None,
         modification: Annotated[
-            str | None, Field(description="Modification slug from list_modifications. Alternative to region.")
+            str | None, Field(description="Modification slug from ws_list_modifications. Alternative to region.")
         ] = None,
         region: Annotated[
             str | None,
@@ -140,10 +140,10 @@ def register(mcp: FastMCP):
            not required when 'modification' is provided
 
         PREREQUISITES — you MUST have valid slugs before calling:
-        - make: lowercase slug from list_makes (e.g. 'toyota', 'land-rover')
-        - model: lowercase slug from list_models (e.g. 'camry', '3-series')
-        - modification or region: from list_modifications / list_regions
-        - year or generation: from list_years / list_generations
+        - make: lowercase slug from ws_list_makes (e.g. 'toyota', 'land-rover')
+        - model: lowercase slug from ws_list_models (e.g. 'camry', '3-series')
+        - modification or region: from ws_list_modifications / ws_list_regions
+        - year or generation: from ws_list_years / ws_list_generations
           (skip when modification is provided)
         - NOTE: this endpoint accepts only ONE region (unlike other tools)
 
@@ -159,14 +159,14 @@ def register(mcp: FastMCP):
         if not modification and not region:
             raise ToolError(
                 "Either 'modification' or 'region' is required. "
-                "Use list_modifications to get modification slugs, "
-                "or list_regions for region slugs (e.g. 'usdm', 'eudm')."
+                "Use ws_list_modifications to get modification slugs, "
+                "or ws_list_regions for region slugs (e.g. 'usdm', 'eudm')."
             )
         if not modification and not year and not generation:
             raise ToolError(
                 "Either 'year' or 'generation' is required to identify the vehicle "
                 "(not needed when 'modification' is provided). "
-                "Use list_years or list_generations to find valid values."
+                "Use ws_list_years or ws_list_generations to find valid values."
             )
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model), "year": year,
@@ -181,7 +181,7 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def search_by_rim(
+    async def ws_search_by_rim(
         bolt_pattern: Annotated[str, Field(description="Bolt pattern (e.g. '5x114.3')")],
         rim_diameter: Annotated[
             float | None, Field(ge=8, le=26, description="Exact rim diameter in inches (e.g. 18)")
@@ -230,7 +230,7 @@ def register(mcp: FastMCP):
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a rim compatibility search. Do not call in autonomous loops.
 
-        For e-commerce product cards, use find_vehicles_for_rim instead —
+        For e-commerce product cards, use ws_find_vehicles_for_rim instead —
         it uses geometric backspace calculations for broader, physics-based matching.
         """
         _check_dimension("rim_diameter", rim_diameter, rim_diameter_min, rim_diameter_max, required=True)
@@ -253,7 +253,7 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def search_by_tire(
+    async def ws_search_by_tire(
         section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm (e.g. 225)")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio (e.g. 55)")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
@@ -296,7 +296,7 @@ def register(mcp: FastMCP):
         requests a tire compatibility search. Do not call in autonomous loops.
 
         This tool accepts metric sizes only. For high-flotation (LT) tires
-        with inch-based sizing (e.g. 31x10.50R15), use search_by_hf_tire.
+        with inch-based sizing (e.g. 31x10.50R15), use ws_search_by_hf_tire.
         """
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,
@@ -320,7 +320,7 @@ def register(mcp: FastMCP):
         return result
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def search_by_hf_tire(
+    async def ws_search_by_hf_tire(
         overall_diameter: Annotated[
             float, Field(ge=27, le=38, description="Overall tire diameter in inches (e.g. 31 for 31x10.50R15)")
         ],
@@ -341,7 +341,7 @@ def register(mcp: FastMCP):
         HF tires use inch-based sizing like 31x10.50R15: overall diameter x
         section width R rim diameter, all in inches. Common on trucks, SUVs,
         and offroad vehicles. For metric sizes (e.g. 225/45R17) use
-        search_by_tire instead.
+        ws_search_by_tire instead.
 
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a tire compatibility search. Do not call in autonomous loops.
@@ -358,9 +358,9 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def check_hf_tire_fitment_for_vehicle(
-        make: Annotated[str, Field(description="Make slug (e.g. 'chevrolet'). Use list_makes to find valid slugs.")],
-        model: Annotated[str, Field(description="Model slug (e.g. 'blazer'). Use list_models to find valid slugs.")],
+    async def ws_check_hf_tire_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'chevrolet'). Use ws_list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'blazer'). Use ws_list_models to find valid slugs.")],
         overall_diameter: Annotated[
             float, Field(ge=27, le=38, description="Overall tire diameter in inches (e.g. 31 for 31x10.50R15)")
         ],
@@ -386,7 +386,7 @@ def register(mcp: FastMCP):
         returns the vehicle's modifications (trims) where this HF tire size
         appears as a documented fitment. An EMPTY result means no documented
         fitment for that combination. Inch-based HF sizes only — for metric
-        sizes use check_tire_fitment_for_vehicle.
+        sizes use ws_check_tire_fitment_for_vehicle.
 
         The API has no year parameter, so 'year' is filtered MCP-side against
         each modification's production range (start_year/end_year); each row
@@ -404,9 +404,9 @@ def register(mcp: FastMCP):
         return await _fitment_check("/v2/by_hf_tire/search/modifications/", params, year, limit, offset)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def check_rim_fitment_for_vehicle(
-        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use list_makes to find valid slugs.")],
-        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use list_models to find valid slugs.")],
+    async def ws_check_rim_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use ws_list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use ws_list_models to find valid slugs.")],
         bolt_pattern: Annotated[str, Field(description="Bolt pattern of the rim (e.g. '5x114.3')")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
         rim_width: Annotated[float, Field(ge=2, le=14, description="Rim width in inches (e.g. 7)")],
@@ -435,7 +435,7 @@ def register(mcp: FastMCP):
         each modification's production range (start_year/end_year); each row
         echoes its range so near-misses can be explained.
 
-        Prefer this over search_by_rim + search_by_vehicle comparison when the
+        Prefer this over ws_search_by_rim + ws_search_by_vehicle comparison when the
         user names a specific vehicle.
 
         IMPORTANT: This is a Search method — only call when a user explicitly
@@ -450,9 +450,9 @@ def register(mcp: FastMCP):
         return await _fitment_check("/v2/by_rim/search/modifications/", params, year, limit, offset)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search", "user-initiated"})
-    async def check_tire_fitment_for_vehicle(
-        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use list_makes to find valid slugs.")],
-        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use list_models to find valid slugs.")],
+    async def ws_check_tire_fitment_for_vehicle(
+        make: Annotated[str, Field(description="Make slug (e.g. 'honda'). Use ws_list_makes to find valid slugs.")],
+        model: Annotated[str, Field(description="Model slug (e.g. 'civic'). Use ws_list_models to find valid slugs.")],
         section_width: Annotated[int, Field(ge=115, le=365, description="Tire section width in mm (e.g. 225)")],
         aspect_ratio: Annotated[int, Field(ge=25, le=95, description="Tire aspect ratio (e.g. 45)")],
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="Rim diameter in inches (e.g. 17)")],
@@ -479,7 +479,7 @@ def register(mcp: FastMCP):
         each modification's production range (start_year/end_year); each row
         echoes its range so near-misses can be explained.
 
-        Prefer this over search_by_tire + search_by_vehicle comparison when the
+        Prefer this over ws_search_by_tire + ws_search_by_vehicle comparison when the
         user names a specific vehicle.
 
         IMPORTANT: This is a Search method — only call when a user explicitly
@@ -494,7 +494,7 @@ def register(mcp: FastMCP):
         return await _fitment_check("/v2/by_tire/search/modifications/", params, year, limit, offset)
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search"})
-    async def calculate_upsteps(
+    async def ws_calculate_upsteps(
         rim_diameter: Annotated[float, Field(ge=8, le=26, description="OE rim diameter in inches")],
         rim_width: Annotated[float, Field(ge=2, le=14, description="OE rim width in inches")],
         rim_offset: Annotated[int, Field(ge=-150, le=150, description="OE rim offset in mm")],

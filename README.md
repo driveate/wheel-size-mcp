@@ -134,42 +134,42 @@ The MCP server starts automatically when the client launches.
 
 | Tool | Description |
 |------|-------------|
-| `list_makes` | List all manufacturers. **Start here.** |
-| `list_models` | Models for a make (e.g. Toyota → Camry, Corolla…). |
-| `list_years` | Available years for a make/model. |
-| `list_generations` | Generations for a make/model (alternative to years). |
-| `list_modifications` | Trims for a specific vehicle (e.g. 2.0i, 3.0 V6…). |
-| `list_regions` | Market regions (USDM, EUDM, JDM…). |
+| `ws_list_makes` | List all manufacturers. **Start here.** |
+| `ws_list_models` | Models for a make (e.g. Toyota → Camry, Corolla…). |
+| `ws_list_years` | Available years for a make/model. |
+| `ws_list_generations` | Generations for a make/model (alternative to years). |
+| `ws_list_modifications` | Trims for a specific vehicle (e.g. 2.0i, 3.0 V6…). |
+| `ws_list_regions` | Market regions (USDM, EUDM, JDM…). |
 
 ### Search — fitment data
 
 | Tool | Description |
 |------|-------------|
-| `search_by_vehicle` | OEM wheel/tire specs for a vehicle. Requires `modification` or `region`, plus `year` or `generation` (unless `modification` is given). |
-| `search_by_rim` | Find vehicles compatible with a rim (exact specs or min/max ranges). |
-| `search_by_tire` | Find vehicles by metric tire size, with speed/load/staggered filters and refinement facets. |
-| `search_by_hf_tire` | Find vehicles by high-flotation (LT) inch size (e.g. 31x10.50R15). |
-| `check_rim_fitment_for_vehicle` | "Will these rims fit my 2020 Civic?" — one-call fitment check. |
-| `check_tire_fitment_for_vehicle` | Same for a metric tire size. |
-| `check_hf_tire_fitment_for_vehicle` | Same for a high-flotation tire size. |
-| `calculate_upsteps` | Plus/minus sizing calculator with width/diameter tolerances. |
+| `ws_search_by_vehicle` | OEM wheel/tire specs for a vehicle. Requires `modification` or `region`, plus `year` or `generation` (unless `modification` is given). |
+| `ws_search_by_rim` | Find vehicles compatible with a rim (exact specs or min/max ranges). |
+| `ws_search_by_tire` | Find vehicles by metric tire size, with speed/load/staggered filters and refinement facets. |
+| `ws_search_by_hf_tire` | Find vehicles by high-flotation (LT) inch size (e.g. 31x10.50R15). |
+| `ws_check_rim_fitment_for_vehicle` | "Will these rims fit my 2020 Civic?" — one-call fitment check. |
+| `ws_check_tire_fitment_for_vehicle` | Same for a metric tire size. |
+| `ws_check_hf_tire_fitment_for_vehicle` | Same for a high-flotation tire size. |
+| `ws_calculate_upsteps` | Plus/minus sizing calculator with width/diameter tolerances. |
 
 ### Classified — product cards for e-commerce
 
 | Tool | Description |
 |------|-------------|
-| `find_tires_for_rim` | Compatible tire sizes for a rim spec. |
-| `find_vehicles_for_rim` | Vehicles that fit a given rim (geometric 2D filtering). |
-| `find_vehicle_modifications_for_rim` | Drill down into trims for a specific generation. |
-| `find_vehicles_for_tire` | Vehicles that use a specific tire size. |
-| `find_vehicles_for_package` | Vehicles compatible with a rim + tire combo. |
-| `find_vehicle_modifications_for_package` | Drill down into trims for a rim + tire package. |
+| `ws_find_tires_for_rim` | Compatible tire sizes for a rim spec. |
+| `ws_find_vehicles_for_rim` | Vehicles that fit a given rim (geometric 2D filtering). |
+| `ws_find_vehicle_modifications_for_rim` | Drill down into trims for a specific generation. |
+| `ws_find_vehicles_for_tire` | Vehicles that use a specific tire size. |
+| `ws_find_vehicles_for_package` | Vehicles compatible with a rim + tire combo. |
+| `ws_find_vehicle_modifications_for_package` | Drill down into trims for a rim + tire package. |
 
 ### Utility
 
 | Tool | Description |
 |------|-------------|
-| `get_spec_metadata` | Computed geometry, population stats, and intelligence hints for any spec. |
+| `ws_get_spec_metadata` | Computed geometry, population stats, and intelligence hints for any spec. |
 
 ## MCP Prompts
 
@@ -191,7 +191,7 @@ Pre-built workflow prompts that guide LLM agents through multi-step operations:
 
 ## API Terms of Service
 
-Search tools (`search_by_vehicle`, `search_by_rim`, `search_by_tire`, `search_by_hf_tire`, and the `check_*_fitment_for_vehicle` checks) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call in autonomous agent loops. Catalog, classified, utility tools and `calculate_upsteps` have no such restriction.
+Search tools (`ws_search_by_vehicle`, `ws_search_by_rim`, `ws_search_by_tire`, `ws_search_by_hf_tire`, and the `ws_check_*_fitment_for_vehicle` checks) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call in autonomous agent loops. Catalog, classified, utility tools and `ws_calculate_upsteps` have no such restriction.
 
 ## Test Questions
 

@@ -71,7 +71,7 @@ def register(mcp: FastMCP):
     """Register classified tools with the MCP server."""
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_tires_for_rim(
+    async def ws_find_tires_for_rim(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
         rim_width: _RimWidth,
@@ -117,7 +117,7 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_vehicles_for_rim(
+    async def ws_find_vehicles_for_rim(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
         rim_width: _RimWidth,
@@ -137,7 +137,7 @@ def register(mcp: FastMCP):
     ) -> dict:
         """Find vehicle generations compatible with a given rim via geometric backspace calculations.
 
-        Unlike search_by_rim (which does direct 1:1 wheel pair matching),
+        Unlike ws_search_by_rim (which does direct 1:1 wheel pair matching),
         this endpoint uses advanced 2D geometric filtering based on
         frontspace/backspace calculations to determine physical fitment.
         This yields broader results — any vehicle where the rim physically
@@ -152,7 +152,7 @@ def register(mcp: FastMCP):
         beyond the wheel arch.
 
         For e-commerce product pages: "This wheel fits: BMW X5, Audi Q7..."
-        To drill into a specific generation, use find_vehicle_modifications_for_rim.
+        To drill into a specific generation, use ws_find_vehicle_modifications_for_rim.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
@@ -177,10 +177,10 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_vehicle_modifications_for_rim(
-        make: Annotated[str, Field(description="Make slug from find_vehicles_for_rim results")],
-        model: Annotated[str, Field(description="Model slug from find_vehicles_for_rim results")],
-        generation: Annotated[str, Field(description="Generation slug from find_vehicles_for_rim results")],
+    async def ws_find_vehicle_modifications_for_rim(
+        make: Annotated[str, Field(description="Make slug from ws_find_vehicles_for_rim results")],
+        model: Annotated[str, Field(description="Model slug from ws_find_vehicles_for_rim results")],
+        generation: Annotated[str, Field(description="Generation slug from ws_find_vehicles_for_rim results")],
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
         rim_width: _RimWidth,
@@ -198,9 +198,9 @@ def register(mcp: FastMCP):
         limit: _Limit = DEFAULT_LIMIT,
         offset: _Offset = 0,
     ) -> dict:
-        """Drill down into individual trims for a generation from find_vehicles_for_rim.
+        """Drill down into individual trims for a generation from ws_find_vehicles_for_rim.
 
-        PREREQUISITES — call find_vehicles_for_rim first to get:
+        PREREQUISITES — call ws_find_vehicles_for_rim first to get:
         - make, model, generation slugs (from the results)
         - Use the same rim parameters and tolerances as the parent search
 
@@ -222,10 +222,10 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_vehicle_modifications_for_package(
-        make: Annotated[str, Field(description="Make slug from find_vehicles_for_package results")],
-        model: Annotated[str, Field(description="Model slug from find_vehicles_for_package results")],
-        generation: Annotated[str, Field(description="Generation slug from find_vehicles_for_package results")],
+    async def ws_find_vehicle_modifications_for_package(
+        make: Annotated[str, Field(description="Make slug from ws_find_vehicles_for_package results")],
+        model: Annotated[str, Field(description="Model slug from ws_find_vehicles_for_package results")],
+        generation: Annotated[str, Field(description="Generation slug from ws_find_vehicles_for_package results")],
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
         rim_width: _RimWidth,
@@ -245,9 +245,9 @@ def register(mcp: FastMCP):
         limit: _Limit = DEFAULT_LIMIT,
         offset: _Offset = 0,
     ) -> dict:
-        """Drill down into individual trims for a generation from find_vehicles_for_package.
+        """Drill down into individual trims for a generation from ws_find_vehicles_for_package.
 
-        PREREQUISITES — call find_vehicles_for_package first to get:
+        PREREQUISITES — call ws_find_vehicles_for_package first to get:
         - make, model, generation slugs (from the results)
         - Use the same rim AND tire parameters and tolerances as the parent search
 
@@ -271,7 +271,7 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_vehicles_for_tire(
+    async def ws_find_vehicles_for_tire(
         section_width: _SectionWidth,
         aspect_ratio: _AspectRatio,
         rim_diameter: _RimDiameter,
@@ -298,7 +298,7 @@ def register(mcp: FastMCP):
         return paginated_response(items, total, offset, limit)
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
-    async def find_vehicles_for_package(
+    async def ws_find_vehicles_for_package(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
         rim_width: _RimWidth,
@@ -325,7 +325,7 @@ def register(mcp: FastMCP):
         Use sort='fitment' to put the closest matches first.
 
         For e-commerce combo/bundle product pages.
-        To drill into a specific generation, use find_vehicle_modifications_for_package.
+        To drill into a specific generation, use ws_find_vehicle_modifications_for_package.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,

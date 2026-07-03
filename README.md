@@ -128,6 +128,28 @@ Add to your Zed `settings.json` (Cmd+, → Open Settings):
 
 The MCP server starts automatically when the client launches.
 
+## Remote Server (Streamable HTTP)
+
+Besides stdio, the server can run as a standalone HTTP service — useful for hosting one shared instance instead of installing Python on every machine:
+
+```bash
+wheel-size-mcp --transport http --port 8000
+```
+
+The MCP endpoint is served at `http://127.0.0.1:8000/mcp/`. Point HTTP-capable clients at it:
+
+```json
+{
+  "mcpServers": {
+    "wheel-size-api": {
+      "url": "http://127.0.0.1:8000/mcp/"
+    }
+  }
+}
+```
+
+**Security**: the server binds to `127.0.0.1` by default. The `WHEELSIZE_API_KEY` lives on the server side, so anyone who can reach the port consumes your API quota — expose it beyond localhost (`--host 0.0.0.0`) only behind a reverse proxy that handles authentication.
+
 ## Available Tools (21)
 
 ### Catalog — vehicle lookup
@@ -188,6 +210,9 @@ Pre-built workflow prompts that guide LLM agents through multi-step operations:
 | `WHEELSIZE_API_KEY` | **Yes** | — | API key from [developer.wheel-size.com](https://developer.wheel-size.com) |
 | `API_BASE_URL` | No | `https://api.wheel-size.com` | API base URL |
 | `API_HOST_HEADER` | No | — | Host header override (only needed for local Docker routing) |
+| `MCP_TRANSPORT` | No | `stdio` | `stdio` or `http` (same as `--transport`) |
+| `MCP_HOST` | No | `127.0.0.1` | Bind address for http transport (same as `--host`) |
+| `MCP_PORT` | No | `8000` | Port for http transport (same as `--port`) |
 
 ## API Terms of Service
 

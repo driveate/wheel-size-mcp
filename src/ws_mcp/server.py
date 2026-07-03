@@ -106,8 +106,40 @@ async def server_status():
 
 
 def main():
-    """Run the MCP server (stdio transport)."""
-    mcp.run()
+    """Run the MCP server: stdio by default, streamable HTTP with --transport http."""
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser(prog="wheel-size-mcp", description="Wheel Fitment API MCP server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "http"],
+        default=os.environ.get("MCP_TRANSPORT", "stdio"),
+        help="stdio (default, local clients) or http (streamable HTTP for remote access)",
+    )
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("MCP_HOST", "127.0.0.1"),
+        help="Bind address for http transport (default: 127.0.0.1; "
+        "expose beyond localhost only behind an authenticating proxy)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=os.environ.get("MCP_PORT", "8000"),
+        help="Port for http transport (default: 8000)",
+    )
+    args = parser.parse_args()
+
+    # argparse does not validate `choices` for env-derived defaults
+    # (string defaults DO go through `type`, so --port is covered)
+    if args.transport not in ("stdio", "http"):
+        parser.error(f"invalid MCP_TRANSPORT {args.transport!r} (choose 'stdio' or 'http')")
+
+    if args.transport == "http":
+        mcp.run(transport="http", host=args.host, port=args.port)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

@@ -26,6 +26,11 @@ venv/
 CLAUDE.md
 .mcp.json
 claudedocs/
+.claude/settings.local.json
+.codex-review/
+
+# OS files
+.DS_Store
 
 # Symlinks to external repos
 development/

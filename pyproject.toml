@@ -6,7 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 authors = [
-    { name = "Driveate", email = "info@wheel-size.com" },
+    { name = "WHEEL SIZE KZ LLP", email = "info@wheel-size.com" },
 ]
 keywords = ["mcp", "claude-code", "wheel-fitment", "fastmcp", "wheel-size"]
 classifiers = [
@@ -27,6 +27,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "respx>=0.22",
     "ruff>=0.8",
 ]
 

@@ -2,9 +2,9 @@
   "name": "wheel-size-mcp",
   "display_name": "Wheel Fitment API",
   "description": "MCP server for vehicle wheel and tire compatibility data — OEM specs, reverse fitment, e-commerce product cards, plus/minus sizing, and spec intelligence from wheel-size.com",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "author": {
-    "name": "Driveate",
+    "name": "WHEEL SIZE KZ LLP",
     "url": "https://wheel-size.com"
   },
   "repository": "https://github.com/driveate/wheel-size-mcp",
@@ -21,7 +21,7 @@
     "description": "API key from developer.wheel-size.com",
     "sign_up_url": "https://developer.wheel-size.com"
   },
-  "tools_count": 16,
+  "tools_count": 21,
   "tool_categories": {
     "catalog": "Vehicle hierarchy lookups (makes, models, years, generations, modifications, regions)",
     "search": "Fitment data by vehicle, rim, or tire (user-initiated per API ToS)",

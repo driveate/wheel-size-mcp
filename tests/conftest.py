@@ -1,5 +1,6 @@
 """Shared fixtures for integration tests."""
 
+import functools
 import json
 import os
 
@@ -14,8 +15,9 @@ from ws_mcp.client import api  # noqa: E402
 from ws_mcp.server import mcp  # noqa: E402
 
 
+@functools.cache
 def _api_is_reachable() -> bool:
-    """Check if the local API is reachable."""
+    """Check if the local API is reachable (probed once, only for integration tests)."""
     try:
         headers = {"Host": api.host_header} if api.host_header else {}
         r = httpx.get(
@@ -24,19 +26,14 @@ def _api_is_reachable() -> bool:
             timeout=5.0,
         )
         return r.status_code == 200
-    except httpx.ConnectError:
+    except httpx.HTTPError:
         return False
 
 
-_reachable = _api_is_reachable()
-
-pytestmark = pytest.mark.integration
-
-
 @pytest.fixture(autouse=True)
-def _require_api():
+def _require_api(request):
     """Skip integration tests when the local API is not reachable."""
-    if not _reachable:
+    if request.node.get_closest_marker("integration") and not _api_is_reachable():
         pytest.skip("Local API not reachable")
 
 

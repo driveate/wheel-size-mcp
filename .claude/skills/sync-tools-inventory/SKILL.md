@@ -36,8 +36,8 @@ Each tool in inventory.md follows this structure:
 > Line 2 of docstring
 > ...
 
-**Параметры**:
-| Параметр | Тип | Описание |
+**Parameters**:
+| Parameter | Type | Description |
 |----------|-----|----------|
 | `param_name` | `type` | Description text |
 ```
@@ -45,8 +45,8 @@ Each tool in inventory.md follows this structure:
 Extract for each tool:
 - **Tool name**: from `### \`tool_name\`` heading
 - **Docstring lines**: all `> ` prefixed lines under **Docstring** (strip the `> ` prefix)
-- **Parameter descriptions**: from the "Описание" column of the parameters table
-- **Parameter names**: from the "Параметр" column (strip backticks)
+- **Parameter descriptions**: from the "Description" column of the parameters table
+- **Parameter names**: from the "Parameter" column (strip backticks)
 
 ## Step 3: Compare and Update Docstrings
 

@@ -218,15 +218,17 @@ Each entry includes `expected_tools`, optional `expected_params`, and a `tests` 
 # Install dev dependencies
 uv sync --dev
 
-# Run tests (requires local API at http://api.ws.local)
-uv run pytest
-
-# Unit tests only (no API needed)
+# Unit tests (no API needed — this is what CI runs)
 uv run pytest -m "not integration"
 
+# Full test suite (requires a private API instance, see note below)
+uv run pytest
+
 # Lint
-ruff check .
+uv run ruff check .
 
 # Run server (stdio)
 wheel-size-mcp
 ```
+
+**Note on tests**: integration tests run against a private test instance of the API and auto-skip when it is unreachable. External contributors should rely on the unit suite (`pytest -m "not integration"`), which mocks all HTTP and is what CI runs on every push and pull request.

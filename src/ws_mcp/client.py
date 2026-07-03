@@ -1,5 +1,6 @@
 """HTTP client wrapper for the Wheel Fitment API."""
 
+import asyncio
 import os
 
 import httpx
@@ -12,6 +13,12 @@ API_HOST_HEADER = os.environ.get("API_HOST_HEADER", "")
 # Claude Code token limits
 DEFAULT_LIMIT = 20
 MAX_ITEMS = 50
+
+# Retry policy for transient failures
+_RETRY_STATUSES = {429, 500, 502, 503, 504}
+_MAX_RETRIES = 2  # total attempts = _MAX_RETRIES + 1
+_BACKOFF_BASE = 0.5  # seconds, doubles per attempt
+_RETRY_AFTER_CAP = 5.0  # seconds, cap for the Retry-After header
 
 # Hints for common parameter errors
 _PARAM_HINTS = {
@@ -52,6 +59,18 @@ def _format_api_error(status_code: int, error_data: dict) -> str:
     return f"API error ({status_code}): {message}" if message else f"API error ({status_code})"
 
 
+def _retry_delay(response: httpx.Response | None, attempt: int) -> float:
+    """Exponential backoff, honoring a Retry-After header when present."""
+    if response is not None:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return min(float(retry_after), _RETRY_AFTER_CAP)
+            except ValueError:
+                pass
+    return _BACKOFF_BASE * (2**attempt)
+
+
 class WheelSizeClient:
     """Async HTTP client for the Wheel Fitment API v2."""
 
@@ -59,9 +78,27 @@ class WheelSizeClient:
         self.base_url = (base_url or API_BASE_URL).rstrip("/")
         self.api_key = api_key or API_KEY
         self.host_header = API_HOST_HEADER
+        self._client: httpx.AsyncClient | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        """Reuse one AsyncClient per event loop (connection pooling).
+
+        A new client is created when the running loop changes (e.g. one
+        loop per test) — the old one is abandoned since it cannot be
+        closed from a different loop.
+        """
+        loop = asyncio.get_running_loop()
+        if self._client is None or self._client.is_closed or self._loop is not loop:
+            self._client = httpx.AsyncClient(timeout=30.0)
+            self._loop = loop
+        return self._client
 
     async def get(self, path: str, params: dict | None = None) -> dict:
         """Make a GET request to the API.
+
+        Retries transient failures (429/5xx and network errors) with
+        exponential backoff before giving up.
 
         Args:
             path: API path (e.g. "/v2/makes/")
@@ -81,13 +118,24 @@ class WheelSizeClient:
         params = {k: v for k, v in params.items() if v is not None}
 
         headers = {"Host": self.host_header} if self.host_header else {}
+        client = self._get_client()
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(
-                f"{self.base_url}{path}",
-                params=params,
-                headers=headers,
-            )
+        response: httpx.Response | None = None
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                response = await client.get(
+                    f"{self.base_url}{path}",
+                    params=params,
+                    headers=headers,
+                )
+            except httpx.TransportError as exc:
+                if attempt == _MAX_RETRIES:
+                    raise ToolError(f"Network error reaching the API: {exc}. Try again shortly.")
+                response = None
+            else:
+                if response.status_code not in _RETRY_STATUSES or attempt == _MAX_RETRIES:
+                    break
+            await asyncio.sleep(_retry_delay(response, attempt))
 
         if response.status_code != 200:
             try:

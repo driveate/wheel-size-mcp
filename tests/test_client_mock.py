@@ -13,6 +13,12 @@ from ws_mcp.client import WheelSizeClient
 BASE = "https://api.example.test"
 
 
+@pytest.fixture(autouse=True)
+def _no_backoff(monkeypatch):
+    """Zero out retry backoff so retry tests don't sleep."""
+    monkeypatch.setattr("ws_mcp.client._BACKOFF_BASE", 0.0)
+
+
 @pytest.fixture
 def client():
     return WheelSizeClient(base_url=BASE, api_key="test-key")
@@ -74,3 +80,79 @@ async def test_non_json_error_body_is_truncated(client):
 
     with pytest.raises(ToolError, match=r"API error \(500\)"):
         await client.get("/v2/makes/")
+
+
+@respx.mock
+async def test_retries_on_429_then_succeeds(client):
+    route = respx.get(f"{BASE}/v2/makes/").mock(
+        side_effect=[
+            httpx.Response(429, json={"message": "slow down"}, headers={"Retry-After": "0"}),
+            httpx.Response(200, json={"data": []}),
+        ]
+    )
+
+    result = await client.get("/v2/makes/")
+
+    assert result == {"data": []}
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_retries_on_503_then_succeeds(client):
+    route = respx.get(f"{BASE}/v2/makes/").mock(
+        side_effect=[
+            httpx.Response(503, text="unavailable"),
+            httpx.Response(200, json={"data": []}),
+        ]
+    )
+
+    result = await client.get("/v2/makes/")
+
+    assert result == {"data": []}
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_retries_exhausted_raises_last_error(client):
+    route = respx.get(f"{BASE}/v2/makes/").mock(
+        return_value=httpx.Response(429, json={"message": "slow down"})
+    )
+
+    with pytest.raises(ToolError, match="Rate limited"):
+        await client.get("/v2/makes/")
+
+    assert route.call_count == 3  # initial attempt + 2 retries
+
+
+@respx.mock
+async def test_no_retry_on_client_error(client):
+    route = respx.get(f"{BASE}/v2/makes/").mock(
+        return_value=httpx.Response(400, json={"message": "bad request"})
+    )
+
+    with pytest.raises(ToolError):
+        await client.get("/v2/makes/")
+
+    assert route.call_count == 1
+
+
+@respx.mock
+async def test_network_error_retried_then_reported(client):
+    route = respx.get(f"{BASE}/v2/makes/").mock(side_effect=httpx.ConnectError("boom"))
+
+    with pytest.raises(ToolError, match="Network error"):
+        await client.get("/v2/makes/")
+
+    assert route.call_count == 3
+
+
+@respx.mock
+async def test_connection_reused_between_requests(client):
+    respx.get(f"{BASE}/v2/makes/").mock(return_value=httpx.Response(200, json={}))
+
+    await client.get("/v2/makes/")
+    first = client._client
+    await client.get("/v2/makes/")
+
+    assert client._client is first
+    assert not first.is_closed

@@ -694,7 +694,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 
 ### `get_spec_metadata` (composite)
 
-**API**: `GET /v2/spec/metadata/` + MCP-side `_build_hints()`
+**API**: `GET /v2/spec/metadata/?hints=true` + MCP-side routing hint
 
 **Docstring**:
 > Get computed geometry, population stats, and hints for a wheel/tire spec.
@@ -722,16 +722,17 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 | `cb` | `float?` | Centre bore in mm (e.g. 71.6). Passed to suggested classified params. |
 | `overall_diameter` | `float?` | Overall tire diameter in inches (e.g. 33). HF mode. |
 
-**MCP-side logic (`_build_hints`)** generates natural-language hints for the LLM:
+**Hints** are generated server-side (the tool always calls the API with `hints=true`; `suggested_classified_params` is also computed server-side). They cover:
 - Offset (ET) percentile within the given rim size
 - Estimated match counts when widening tolerances
-- Recommended `fs_poke`/`bs_push` parameters for classified search when an offset search yields no results
 - Warning when backspace is close to the database minimum
 - Top 3 bolt patterns
 - Primary axle usage (front/rear) and stock fitment percentage
 - Stagger pairs (what is most often mounted on the other axle)
 - Rim/tire weight estimate
 - Rim width to tire compatibility (for package mode)
+
+**MCP-side logic (`_mcp_routing_hints`)** adds the one hint the API cannot generate because it references MCP tool names: when an offset search yields no matches at any tolerance, it recommends `find_vehicles_for_rim` with the server-suggested `fs_poke`/`bs_push` values.
 
 ---
 

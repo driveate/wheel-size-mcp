@@ -30,6 +30,9 @@ dev = [
     "respx>=0.22",
     "ruff>=0.8",
 ]
+evals = [
+    "anthropic>=0.40",
+]
 
 [project.scripts]
 wheel-size-mcp = "ws_mcp.server:main"

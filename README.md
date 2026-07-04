@@ -218,24 +218,24 @@ Pre-built workflow prompts that guide LLM agents through multi-step operations:
 
 Search tools (`ws_search_by_vehicle`, `ws_search_by_rim`, `ws_search_by_tire`, `ws_search_by_hf_tire`, and the `ws_check_*_fitment_for_vehicle` checks) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call in autonomous agent loops. Catalog, classified, utility tools and `ws_calculate_upsteps` have no such restriction.
 
-## Test Questions
+## Evals
 
-[`tests/test_questions.json`](tests/test_questions.json) contains 56 natural-language questions for evaluating MCP tool selection and response quality. Questions are grouped by workflow:
+[`tests/test_questions.json`](tests/test_questions.json) contains 89 natural-language questions across 12 categories (catalog navigation, fitment lookups, reverse searches, fitment checks, upstep calculation, e-commerce product cards, spec metadata, multi-step workflows, edge cases, tool selection). Each entry includes `expected_tools`, optional `expected_params` / `expected_params_search`, and a free-text `tests` note.
 
-| Category | Questions | Covers |
-|----------|-----------|--------|
-| `catalog_flow` | 10 | Slug normalization, region/fuel/trim filters, generation navigation |
-| `vehicle_fitment` | 15 | Full lookup chains, region inference, multi-trim comparison |
-| `reverse_fitment_rim` | 5 | Rim spec parsing, region-filtered searches, compatibility checks |
-| `reverse_fitment_tire` | 3 | Tire size parsing, vehicle matching |
-| `upstep_calculator` | 3 | Plus/minus sizing from OEM specs |
-| `classified_ecommerce` | 6 | Product cards, package search, centre bore, trim drill-down |
-| `spec_metadata` | 5 | Population stats, axle usage, bolt pattern commonality |
-| `multi_step_complex` | 6 | Cross-vehicle compat, multi-region compare, full product workflow |
-| `edge_cases` | 10 | Typos, missing params, extreme offsets, pagination, non-obvious regions |
-| `tool_selection` | 4 | Correct choice between search vs classified vs metadata tools |
+`evals/run_evals.py` feeds these questions to a real Claude model with the MCP tools attached, records which tools it calls with which parameters, and grades them against the expectations — catching regressions in tool descriptions and server instructions:
 
-Each entry includes `expected_tools`, optional `expected_params`, and a `tests` field describing the behavior to validate.
+```bash
+# needs ANTHROPIC_API_KEY and a reachable Wheel Fitment API; costs money
+uv sync --group evals
+uv run --group evals python evals/run_evals.py                  # all questions
+uv run --group evals python evals/run_evals.py -n 10            # smoke run
+uv run --group evals python evals/run_evals.py --category catalog_flow
+uv run --group evals python evals/run_evals.py --json report.json --min-pass 0.8
+```
+
+Grading is deterministic (no LLM judge): every expected tool must be called (multiset — repeats counted, extra navigation calls allowed), and some single call must carry the expected parameters. Questions without machine-checkable expectations are reported as SKIP and excluded from the pass rate. The default model is pinned (`claude-sonnet-5`) so pass-rate history stays comparable; override with `--model`.
+
+The eval runner is **not** part of pytest or CI — it bills the Anthropic API. The grading logic itself is unit-tested in CI (`tests/test_eval_grading.py`). ToS note: every question simulates a user-initiated request, so the search-tool restriction is respected.
 
 ## Development
 

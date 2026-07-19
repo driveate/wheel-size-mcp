@@ -22,11 +22,11 @@ venv/
 .ruff_cache/
 .playwright-mcp/
 
-# AI assistant configs
+# AI assistant configs (local tooling — skills, settings; not part of the package)
 CLAUDE.md
 .mcp.json
 claudedocs/
-.claude/settings.local.json
+.claude/
 .codex-review/
 
 # OS files

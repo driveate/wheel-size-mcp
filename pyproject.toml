@@ -25,6 +25,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.wheel-size.com"
+Repository = "https://github.com/driveate/wheel-size-mcp"
+Issues = "https://github.com/driveate/wheel-size-mcp/issues"
 Documentation = "https://developer.wheel-size.com"
 "API Reference" = "https://api.wheel-size.com/v2/openapi/"
 

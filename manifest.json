@@ -7,7 +7,7 @@
     "name": "WHEEL SIZE KZ LLP",
     "url": "https://wheel-size.com"
   },
-  "repository": "https://pypi.org/project/wheel-size-mcp/",
+  "repository": "https://github.com/driveate/wheel-size-mcp",
   "license": "MIT",
   "categories": ["automotive", "e-commerce", "data"],
   "transport": ["stdio"],

@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.driveate/wheel-size-mcp -->
 
-MCP server for the [Wheel Fitment API](https://api.wheel-size.com/v2/swagger/) — gives LLM agents access to vehicle wheel and tire compatibility data from [wheel-size.com](https://www.wheel-size.com).
+MCP server for the [Wheel Fitment API](https://api.wheel-size.com/v2/openapi/) — gives LLM agents access to vehicle wheel and tire compatibility data from [wheel-size.com](https://www.wheel-size.com).
 
 Ask your AI assistant things like:
 - "What are the OEM wheel specs for a 2024 Toyota Camry?"

@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.driveate/wheel-size-mcp",
   "title": "Wheel Fitment API",
-  "description": "MCP server for vehicle wheel and tire fitment data from wheel-size.com",
+  "description": "Official MCP server for vehicle wheel and tire fitment data from wheel-size.com",
   "repository": {
     "url": "https://github.com/driveate/wheel-size-mcp",
     "source": "github"

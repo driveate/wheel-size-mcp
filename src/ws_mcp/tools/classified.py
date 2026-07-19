@@ -1,4 +1,8 @@
-"""Classified tools — product card generation for e-commerce."""
+"""Classified tools — product card generation for e-commerce.
+
+IMPORTANT: Classified tools must be initiated by real users per API Terms of Service.
+Do not call these tools in autonomous loops or for bulk data generation.
+"""
 
 from __future__ import annotations
 
@@ -70,7 +74,7 @@ def _geometry_params(
 def register(mcp: FastMCP):
     """Register classified tools with the MCP server."""
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_tires_for_rim(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
@@ -116,7 +120,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_rim(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,
@@ -176,7 +180,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicle_modifications_for_rim(
         make: Annotated[str, Field(description="Make slug from ws_find_vehicles_for_rim results")],
         model: Annotated[str, Field(description="Model slug from ws_find_vehicles_for_rim results")],
@@ -221,7 +225,7 @@ def register(mcp: FastMCP):
         items = [map_drilldown_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicle_modifications_for_package(
         make: Annotated[str, Field(description="Make slug from ws_find_vehicles_for_package results")],
         model: Annotated[str, Field(description="Model slug from ws_find_vehicles_for_package results")],
@@ -270,7 +274,7 @@ def register(mcp: FastMCP):
         items = [map_drilldown_row(item) for item in data["data"]]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_tire(
         section_width: _SectionWidth,
         aspect_ratio: _AspectRatio,
@@ -297,7 +301,7 @@ def register(mcp: FastMCP):
         ]
         return paginated_response(items, total, offset, limit)
 
-    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce"})
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_package(
         bolt_pattern: _BoltPattern,
         rim_diameter: _RimDiameter,

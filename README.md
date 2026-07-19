@@ -218,7 +218,7 @@ Pre-built workflow prompts that guide LLM agents through multi-step operations:
 
 ## API Terms of Service
 
-Search tools (`ws_search_by_vehicle`, `ws_search_by_rim`, `ws_search_by_tire`, `ws_search_by_hf_tire`, and the `ws_check_*_fitment_for_vehicle` checks) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call in autonomous agent loops. Catalog, classified, utility tools and `ws_calculate_upsteps` have no such restriction.
+Search tools (`ws_search_by_vehicle`, `ws_search_by_rim`, `ws_search_by_tire`, `ws_search_by_hf_tire`, the `ws_check_*_fitment_for_vehicle` checks) and classified tools (`ws_find_*`) **must be initiated by real users** per [API Terms of Usage](https://developer.wheel-size.com/api-tos). Do not call them in autonomous agent loops or for bulk data generation. Catalog tools, utility tools and `ws_calculate_upsteps` have no such restriction.
 
 ## Evals
 

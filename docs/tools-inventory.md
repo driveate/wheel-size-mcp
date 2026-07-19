@@ -506,7 +506,7 @@ All rim/package classified tools (except `ws_find_vehicles_for_tire`) accept a s
 
 > Note (2026-06): sorting is passed via the **`sort`** parameter — previously the tools sent the name/fitment/load values in `ordering`, which the API rejected with VALIDATION_ERROR. The `region` parameter was removed from the drill-down tools: the endpoints silently ignore it (it is not in the spec).
 
-E-commerce product card generation. Geometric 2D fitment (backspace/frontspace). No restrictions.
+E-commerce product card generation. Geometric 2D fitment (backspace/frontspace). User-initiated only (API ToS) — must not be called in autonomous loops or for bulk data generation.
 
 ---
 

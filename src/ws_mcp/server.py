@@ -72,7 +72,8 @@ comparing manually.
 - Catalog tools (ws_list_*) and utility tools: call freely, no restrictions
 - Search tools (ws_search_by_*, ws_check_*_fitment_for_vehicle): user-initiated only
   per API Terms of Service (ws_calculate_upsteps is exempt)
-- Classified tools (ws_find_*): for e-commerce product cards, call freely
+- Classified tools (ws_find_*): for e-commerce product cards, user-initiated only
+  per API Terms of Service — no autonomous loops or bulk generation
 - ws_search_by_rim vs ws_find_vehicles_for_rim:
   ws_search_by_rim = direct 1:1 wheel pair matching (exact OEM/documented fitments)
   ws_find_vehicles_for_rim = geometric backspace calculations (physics-based, broader results)

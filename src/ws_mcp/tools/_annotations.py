@@ -19,7 +19,7 @@ SEARCH_ANNOTATIONS = ToolAnnotations(
 )
 
 CLASSIFIED_ANNOTATIONS = ToolAnnotations(
-    title="Classified (freely callable)",
+    title="Classified (user-initiated only)",
     readOnlyHint=True,
     destructiveHint=False,
     idempotentHint=True,

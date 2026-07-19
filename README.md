@@ -31,7 +31,7 @@ Choose your client below — each config block is copy-paste ready.
 #### Claude Code
 
 ```bash
-claude mcp add wheel-size-api -- uvx --from git+https://github.com/driveate/wheel-size-mcp wheel-size-mcp
+claude mcp add wheel-size-api -- uvx wheel-size-mcp
 ```
 
 Or add to `.mcp.json` in your project root:
@@ -41,7 +41,7 @@ Or add to `.mcp.json` in your project root:
   "mcpServers": {
     "wheel-size-api": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"],
+      "args": ["wheel-size-mcp"],
       "env": {
         "WHEELSIZE_API_KEY": "${WHEELSIZE_API_KEY}"
       }
@@ -59,7 +59,7 @@ Add to `claude_desktop_config.json` (`~/Library/Application Support/Claude/claud
   "mcpServers": {
     "wheel-size-api": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"],
+      "args": ["wheel-size-mcp"],
       "env": {
         "WHEELSIZE_API_KEY": "your-api-key-here"
       }
@@ -77,7 +77,7 @@ Add to `.cursor/mcp.json` in your project root:
   "mcpServers": {
     "wheel-size-api": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"],
+      "args": ["wheel-size-mcp"],
       "env": {
         "WHEELSIZE_API_KEY": "your-api-key-here"
       }
@@ -95,7 +95,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "wheel-size-api": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"],
+      "args": ["wheel-size-mcp"],
       "env": {
         "WHEELSIZE_API_KEY": "your-api-key-here"
       }
@@ -114,7 +114,7 @@ Add to your Zed `settings.json` (Cmd+, → Open Settings):
     "wheel-size-api": {
       "command": {
         "path": "uvx",
-        "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"],
+        "args": ["wheel-size-mcp"],
         "env": {
           "WHEELSIZE_API_KEY": "your-api-key-here"
         }

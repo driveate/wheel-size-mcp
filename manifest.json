@@ -7,13 +7,13 @@
     "name": "WHEEL SIZE KZ LLP",
     "url": "https://wheel-size.com"
   },
-  "repository": "https://github.com/driveate/wheel-size-mcp",
+  "repository": "https://pypi.org/project/wheel-size-mcp/",
   "license": "MIT",
   "categories": ["automotive", "e-commerce", "data"],
   "transport": ["stdio"],
   "install": {
     "command": "uvx",
-    "args": ["--from", "git+https://github.com/driveate/wheel-size-mcp", "wheel-size-mcp"]
+    "args": ["wheel-size-mcp"]
   },
   "auth": {
     "type": "env",

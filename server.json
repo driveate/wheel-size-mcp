@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.driveate/wheel-size-mcp",
+  "title": "Wheel Fitment API",
+  "description": "MCP server for vehicle wheel and tire fitment data from wheel-size.com",
+  "repository": {
+    "url": "https://github.com/driveate/wheel-size-mcp",
+    "source": "github"
+  },
+  "version": "0.4.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "wheel-size-mcp",
+      "version": "0.4.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "WHEELSIZE_API_KEY",
+          "description": "API key from developer.wheel-size.com",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

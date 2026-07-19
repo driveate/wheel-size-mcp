@@ -75,7 +75,7 @@ async def test_search_by_hf_tire_params_and_projection(captured):
 
 async def test_search_by_hf_tire_rejects_metric_width():
     """Metric mm widths must not pass — HF section_width is inches (4.5-14)."""
-    from pydantic import ValidationError
+    from fastmcp.exceptions import ValidationError
 
     with pytest.raises(ValidationError, match="section_width"):
         await mcp.call_tool(

@@ -32,5 +32,6 @@ claudedocs/
 # OS files
 .DS_Store
 
-# Symlinks to external repos
-development/
+# Symlinks to external repos (local dev convenience — never publish)
+# NB: no trailing slash — must match the SYMLINK, not just a directory
+/development

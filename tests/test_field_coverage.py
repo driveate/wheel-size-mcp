@@ -34,7 +34,7 @@ EXPECTED_FIELDS = {
         "args": {"make": "toyota", "model": "camry", "year": 2024},
         "fields": [
             "slug", "name", "trim", "body", "start_year", "end_year",
-            "engine", "regions", "trim_levels", "trim_attributes",
+            "engine", "powertrain", "regions", "trim_levels", "trim_attributes",
             "trim_body_types",
         ],
     },
@@ -53,7 +53,7 @@ EXPECTED_FIELDS = {
             "slug", "name", "trim", "trim_levels",
             "trim_attributes", "trim_body_types", "body",
             "generation", "start_year", "end_year", "regions",
-            "engine", "tire_type", "technical", "wheel_count", "stock_wheels",
+            "engine", "powertrain", "tire_type", "technical", "wheel_count", "stock_wheels",
         ],
     },
 }

@@ -8,6 +8,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from ws_mcp.client import api
+from ws_mcp.response import map_powertrain_summary
 from ws_mcp.slugify import normalize_regions, normalize_slug
 from ws_mcp.tools._annotations import CATALOG_ANNOTATIONS
 
@@ -186,7 +187,18 @@ def register(mcp: FastMCP):
         ] = None,
         fuel: Annotated[
             str | None,
-            Field(description="Fuel type filter (e.g. 'diesel', 'electric', 'hybrid', 'petrol')"),
+            Field(
+                description=(
+                    "Fuel code — one of: biodiesel_blend, cng, diesel, e100, electric, ethanol_blend, "
+                    "flex_fuel, h2, hybrid, lpg, petrol, petrol_cng, petrol_lpg. One value matches the legacy "
+                    "engine.fuel OR powertrain.primary_fuel OR powertrain.secondary_fuel (e.g. 'lpg' returns "
+                    "dedicated-LPG and petrol/LPG bi-fuel cars alike). Old spellings such as 'natural-gas', "
+                    "'flex-fuel' or 'e85' are still accepted; any other value is a 400 error. "
+                    "A real fuel code read from powertrain.primary_fuel / secondary_fuel can be passed straight "
+                    "back here; the absence words not_applicable, not_reported and unknown are not fuel codes "
+                    "and are rejected."
+                )
+            ),
         ] = None,
         trim: Annotated[
             str | None,
@@ -198,13 +210,22 @@ def register(mcp: FastMCP):
         ] = None,
         horsepower: Annotated[
             float | None,
-            Field(ge=0, le=2000, description="Horsepower (±2.7 hp band, e.g. 150)"),
+            Field(
+                ge=0, le=2000,
+                description=(
+                    "Horsepower, ±2.7 hp band (e.g. 150). Matches the headline engine.power figure, whose "
+                    "source depends on the electrification level — not always the system total, not always "
+                    "the combustion engine."
+                ),
+            ),
         ] = None,
         horsepower_min: Annotated[
-            float | None, Field(ge=0, le=2000, description="Minimum horsepower (e.g. 300)")
+            float | None,
+            Field(ge=0, le=2000, description="Minimum horsepower (e.g. 300). Same headline figure as horsepower."),
         ] = None,
         horsepower_max: Annotated[
-            float | None, Field(ge=0, le=2000, description="Maximum horsepower")
+            float | None,
+            Field(ge=0, le=2000, description="Maximum horsepower. Same headline figure as horsepower."),
         ] = None,
         lang: Annotated[
             str | None,
@@ -213,11 +234,58 @@ def register(mcp: FastMCP):
     ) -> dict:
         """List modifications (trims) for a specific vehicle.
 
-        Returns trim names, engine specs, and production years.
+        Returns trim names, engine and powertrain specs, and production years.
         One of year or generation is required.
         Filter by power via horsepower (exact ±2.7 hp) or horsepower_min/max
         (e.g. "trims over 300 hp" → horsepower_min=300).
         After getting a modification slug, use ws_search_by_vehicle for fitment data.
+
+        Each row carries two sibling blocks:
+        - engine: legacy {fuel, capacity, type, power, code}. engine.power is the
+          headline figure whose source depends on the electrification level:
+          the combustion engine for combustion-only cars and mild hybrids;
+          system power (else sum of motors, else engine) for full and plug-in
+          hybrids; sum of motors (else engine) for range-extenders; system
+          power (else sum of motors) for BEV/FCEV. engine.fuel is a display string (renamed
+          without notice, e.g. 'Natural gas' → 'CNG'); group on powertrain fuel
+          codes instead.
+        - powertrain: combustion_engine, electrification_level, primary_fuel and
+          secondary_fuel (fuel codes — a real code can be passed back as the
+          fuel filter; the absence words cannot),
+          engine_power_hp, system_power_hp, engine_power_secondary_hp, and
+          motors [{axle, hp, code}]. The full block with kW/PS/hp and fuel
+          titles is returned by ws_search_by_vehicle.
+
+        Powertrain semantics:
+        - engine_power_hp = the combustion engine alone on its primary fuel,
+          excluding any electric motor. This is what most other vehicle-data
+          providers publish as "power"; use it to reconcile hybrids against
+          other datasets. On bi-fuel vehicles it may still be the higher of the
+          engine's two ratings rather than the primary-fuel one (splitting them
+          into engine_power_secondary is editorial work in progress).
+        - system_power_hp = manufacturer-declared total of the whole powertrain.
+          A distinct quantity only on full hybrids, plug-in hybrids and EVs with
+          a motor on each axle; normally null on a single-motor EV, a mild
+          hybrid, a range-extender and a pure combustion vehicle. NEVER
+          reconstruct it by adding engine_power and motors — the declared total
+          is normally lower than their sum.
+        - engine_power_secondary_hp = the same engine's rating on its secondary
+          fuel (bi-fuel / flex-fuel only). Not a second engine; never add it.
+        - motors = one entry per driven axle. 'front' also holds an aggregated
+          figure with no front/rear split, or a mild hybrid's starter-generator.
+        - electrification_level: mild_hybrid, full_hybrid, phev, erev, bev, fcev,
+          or not_applicable (combustion-only), not_reported, unknown.
+
+        Absence words in enums and fuel codes are data, not errors:
+        not_applicable = cannot apply to this vehicle (a BEV has no engine, a
+        single-fuel car has no secondary fuel) — final. not_reported = applies
+        but not recorded yet — may fill in later. unknown = neither
+        electrification tier nor fuel recorded. So a null engine_power_hp means
+        "no combustion engine" when combustion_engine is not_applicable and
+        "not yet recorded" when it is present; motors: [] on an electrified
+        vehicle means motor data not entered yet; a null
+        engine_power_secondary_hp on a bi-fuel car means the second rating is
+        not recorded yet, not that the engine has a single rating.
         """
         params = {
             "make": normalize_slug(make),
@@ -245,6 +313,7 @@ def register(mcp: FastMCP):
                     "start_year": m.get("start_year"),
                     "end_year": m.get("end_year"),
                     "engine": m.get("engine"),
+                    "powertrain": map_powertrain_summary(m.get("powertrain")),
                     "regions": m.get("regions", []),
                     "trim_levels": m.get("trim_levels", []),
                     "trim_attributes": m.get("trim_attributes", []),

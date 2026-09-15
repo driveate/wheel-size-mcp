@@ -237,3 +237,25 @@ def test_filter_vehicle_fitment_concise_no_rear():
     result = filter_vehicle_fitment(item, "concise")
     assert result["stock_wheels"][0]["setup"] == "staggered"
     assert result["stock_wheels"][0]["rear"] is None
+
+
+def test_filter_vehicle_fitment_passes_powertrain_through_untouched():
+    """The search row is the detailed view: the API powertrain block is returned verbatim."""
+    powertrain = {
+        "combustion_engine": "present",
+        "electrification_level": "phev",
+        "primary_fuel": {"code": "petrol", "title": "Petrol"},
+        "secondary_fuel": {"code": "not_applicable", "title": "Not applicable"},
+        "engine_power": {"kW": 430.0, "PS": 585, "hp": 577},
+        "system_power": {"kW": 535.0, "PS": 727, "hp": 717},
+        "engine_power_secondary": None,
+        "motors": [{"axle": "front", "power": {"kW": 145.0, "PS": 197, "hp": 194}, "code": "GC1P28M0"}],
+    }
+    item = {"slug": "ecda908aa6", "name": "M5", "wheels": [], "powertrain": powertrain}
+    result = filter_vehicle_fitment(item, "concise")
+    assert result["powertrain"] is powertrain
+
+
+def test_filter_vehicle_fitment_without_powertrain_key():
+    result = filter_vehicle_fitment({"slug": "x", "name": "x", "wheels": []}, "concise")
+    assert result["powertrain"] is None

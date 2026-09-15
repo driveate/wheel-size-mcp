@@ -5,6 +5,7 @@ from ws_mcp.response import (
     map_classified_generation_row,
     map_drilldown_row,
     map_modification_row,
+    map_powertrain_summary,
 )
 
 
@@ -57,3 +58,113 @@ def test_map_modification_row_engine_projection():
     }
     row = map_modification_row(item)
     assert row["engine"] == {"fuel": "Petrol", "capacity": "2.0", "hp": 252}
+
+
+# ---------------------------------------------------------------------------
+# powertrain block (WHEEL-7496 API release, 2026-09-15) — fixtures are live
+# production rows quoted in the KT document.
+# ---------------------------------------------------------------------------
+
+PHEV_POWERTRAIN = {  # BMW M5 2024, ecda908aa6
+    "combustion_engine": "present",
+    "electrification_level": "phev",
+    "primary_fuel": {"code": "petrol", "title": "Petrol"},
+    "secondary_fuel": {"code": "not_applicable", "title": "Not applicable"},
+    "engine_power": {"kW": 430.0, "PS": 585, "hp": 577},
+    "system_power": {"kW": 535.0, "PS": 727, "hp": 717},
+    "engine_power_secondary": None,
+    "motors": [{"axle": "front", "power": {"kW": 145.0, "PS": 197, "hp": 194}, "code": "GC1P28M0"}],
+}
+
+BEV_POWERTRAIN = {  # Nissan Leaf 2023, ce42361c10 — final null vs not-yet-entered motors
+    "combustion_engine": "not_applicable",
+    "electrification_level": "bev",
+    "primary_fuel": {"code": "electric", "title": "Electric"},
+    "secondary_fuel": {"code": "not_applicable", "title": "Not applicable"},
+    "engine_power": None,
+    "system_power": None,
+    "engine_power_secondary": None,
+    "motors": [],
+}
+
+FLEX_FUEL_POWERTRAIN = {  # Chevrolet Blazer 2.4i, 5919cc509b — two ratings for one engine
+    "combustion_engine": "present",
+    "electrification_level": "not_applicable",
+    "primary_fuel": {"code": "petrol", "title": "Petrol"},
+    "secondary_fuel": {"code": "ethanol_blend", "title": "Ethanol blend"},
+    "engine_power": {"kW": 104.0, "PS": 141, "hp": 139},
+    "system_power": None,
+    "engine_power_secondary": {"kW": 108.0, "PS": 147, "hp": 145},
+    "motors": [],
+}
+
+
+def test_map_powertrain_summary_phev_split():
+    assert map_powertrain_summary(PHEV_POWERTRAIN) == {
+        "combustion_engine": "present",
+        "electrification_level": "phev",
+        "primary_fuel": "petrol",
+        "secondary_fuel": "not_applicable",
+        "engine_power_hp": 577,
+        "system_power_hp": 717,
+        "engine_power_secondary_hp": None,
+        "motors": [{"axle": "front", "hp": 194, "code": "GC1P28M0"}],
+    }
+
+
+def test_map_powertrain_summary_bev_keeps_absence_words_and_nulls():
+    """null power members and empty motors stay in the summary — the enums give them meaning."""
+    row = map_powertrain_summary(BEV_POWERTRAIN)
+    assert row["combustion_engine"] == "not_applicable"
+    assert row["electrification_level"] == "bev"
+    assert row["primary_fuel"] == "electric"
+    assert row["engine_power_hp"] is None
+    assert row["system_power_hp"] is None
+    assert row["motors"] == []
+    assert set(row) == {
+        "combustion_engine", "electrification_level", "primary_fuel", "secondary_fuel",
+        "engine_power_hp", "system_power_hp", "engine_power_secondary_hp", "motors",
+    }
+
+
+def test_map_powertrain_summary_flex_fuel_secondary_rating():
+    row = map_powertrain_summary(FLEX_FUEL_POWERTRAIN)
+    assert row["secondary_fuel"] == "ethanol_blend"
+    assert row["engine_power_hp"] == 139
+    assert row["engine_power_secondary_hp"] == 145
+
+
+def test_map_powertrain_summary_not_reported_row():
+    """Editorial-in-progress row: absence words pass through verbatim, never coerced."""
+    row = map_powertrain_summary({
+        "combustion_engine": "present",
+        "electrification_level": "not_reported",
+        "primary_fuel": {"code": "not_reported", "title": "Not reported"},
+        "secondary_fuel": {"code": "not_reported", "title": "Not reported"},
+        "engine_power": None, "system_power": None, "engine_power_secondary": None, "motors": [],
+    })
+    assert row["electrification_level"] == "not_reported"
+    assert row["primary_fuel"] == "not_reported"
+
+
+def test_map_powertrain_summary_absent_block_is_none():
+    """Rows without the block (classified endpoints, pre-release API) map to None, not a crash."""
+    assert map_powertrain_summary(None) is None
+    assert map_powertrain_summary({}) is None
+
+
+def test_map_modification_row_includes_powertrain_summary():
+    item = {
+        "slug": "m1", "name": "M5",
+        "engine": {"fuel": "Hybrid", "capacity": "4.4", "power": {"hp": 717, "kW": 535.0}},
+        "powertrain": PHEV_POWERTRAIN,
+    }
+    row = map_modification_row(item)
+    assert row["engine"] == {"fuel": "Hybrid", "capacity": "4.4", "hp": 717}
+    assert row["powertrain"]["system_power_hp"] == 717
+    assert row["powertrain"]["engine_power_hp"] == 577
+
+
+def test_map_modification_row_without_powertrain():
+    row = map_modification_row({"slug": "m1", "name": "x", "engine": {"fuel": "Petrol"}})
+    assert row["powertrain"] is None

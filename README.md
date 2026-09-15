@@ -195,6 +195,17 @@ The MCP endpoint is served at `http://127.0.0.1:8000/mcp/`. Point HTTP-capable c
 |------|-------------|
 | `ws_get_spec_metadata` | Computed geometry, population stats, and intelligence hints for any spec. |
 
+## Engine and Powertrain Data
+
+Since the API release of 2026-09-15, every modification row returned by `ws_list_modifications`, `ws_search_by_vehicle` and the `ws_check_*_fitment_for_vehicle` tools carries two sibling blocks:
+
+- **`engine`** — the legacy block `{fuel, capacity, type, power, code}`, unchanged. `engine.power` is the headline figure whose source depends on the electrification level (combustion engine for combustion-only cars and mild hybrids, system power for full/plug-in hybrids and EVs). `engine.fuel` is a display string; group and filter on the powertrain fuel codes instead.
+- **`powertrain`** — `combustion_engine`, `electrification_level`, `primary_fuel`, `secondary_fuel`, `engine_power`, `system_power`, `engine_power_secondary`, `motors`. `ws_search_by_vehicle` returns the block as the API sends it (`{kW, PS, hp}` power objects, `{code, title}` fuel refs); the list and fitment-check tools return a compact summary (hp figures, fuel codes, `motors [{axle, hp, code}]`) to stay within token limits.
+
+Absence words in enums and fuel codes are data, not errors: `not_applicable` (cannot apply — a BEV has no engine), `not_reported` (applies, not recorded yet), `unknown` (neither electrification tier nor fuel recorded). `engine_power` is the combustion engine alone and is the figure most other vehicle-data providers publish as "power" (on bi-fuel vehicles it may still be the higher of the engine's two ratings while `engine_power_secondary` is being filled in); `system_power` is the manufacturer-declared total of the whole powertrain, normally `null` outside full/plug-in hybrids and EVs with a motor on each axle, and must never be reconstructed by adding engine and motor figures.
+
+The `fuel` filter of `ws_list_modifications` takes fuel codes (`biodiesel_blend, cng, diesel, e100, electric, ethanol_blend, flex_fuel, h2, hybrid, lpg, petrol, petrol_cng, petrol_lpg`); one value matches the legacy `engine.fuel`, the primary fuel or the secondary fuel, and a real code read from `powertrain.primary_fuel` / `secondary_fuel` can be passed straight back. Older spellings such as `natural-gas` are still accepted; the absence words (`not_applicable`, `not_reported`, `unknown`) and anything else are a 400 error.
+
 ## MCP Prompts
 
 Pre-built workflow prompts that guide LLM agents through multi-step operations:

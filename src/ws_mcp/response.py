@@ -26,6 +26,38 @@ def map_car_search_row(item: dict) -> dict:
     }
 
 
+def _hp(power: dict | None) -> int | float | None:
+    """Pick the hp figure out of an API Power object ({kW, PS, hp}) or None."""
+    return (power or {}).get("hp")
+
+
+def map_powertrain_summary(powertrain: dict | None) -> dict | None:
+    """Compact projection of the API `powertrain` block (sibling of `engine`).
+
+    Keeps every one of the 8 keys so the shape stays uniform: the enum members
+    (`combustion_engine`, `electrification_level`) and the fuel codes carry the
+    absence vocabulary (not_applicable / not_reported / unknown), which is
+    information, not noise. Power objects are reduced to their hp figure and
+    fuel refs to their `code` (the value `fuel=` accepts). Returns None when the
+    row has no powertrain block (older API, classified endpoints).
+    """
+    if not powertrain:
+        return None
+    return {
+        "combustion_engine": powertrain.get("combustion_engine"),
+        "electrification_level": powertrain.get("electrification_level"),
+        "primary_fuel": (powertrain.get("primary_fuel") or {}).get("code"),
+        "secondary_fuel": (powertrain.get("secondary_fuel") or {}).get("code"),
+        "engine_power_hp": _hp(powertrain.get("engine_power")),
+        "system_power_hp": _hp(powertrain.get("system_power")),
+        "engine_power_secondary_hp": _hp(powertrain.get("engine_power_secondary")),
+        "motors": [
+            {"axle": m.get("axle"), "hp": _hp(m.get("power")), "code": m.get("code")}
+            for m in powertrain.get("motors") or []
+        ],
+    }
+
+
 def map_modification_row(item: dict) -> dict:
     """Project a search .../modifications/ row (fitment check) to essential fields."""
     gen = item.get("generation") or {}
@@ -42,8 +74,9 @@ def map_modification_row(item: dict) -> dict:
         "engine": {
             "fuel": engine.get("fuel"),
             "capacity": engine.get("capacity"),
-            "hp": (engine.get("power") or {}).get("hp"),
+            "hp": _hp(engine.get("power")),
         },
+        "powertrain": map_powertrain_summary(item.get("powertrain")),
         "regions": item.get("regions", []),
     }
 
@@ -189,6 +222,8 @@ def filter_vehicle_fitment(item: dict, detail_level: str = "concise") -> dict:
         "end_year": item.get("end_year"),
         "regions": item.get("regions", []),
         "engine": item.get("engine"),
+        # Full block, untouched: the search row is the detailed view of one vehicle.
+        "powertrain": item.get("powertrain"),
         "tire_type": item.get("tire_type"),
         "technical": _filter_technical(tech),
         "wheel_count": len(item.get("wheels", [])),

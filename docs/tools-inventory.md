@@ -131,11 +131,58 @@ Scenario 4 (via generations):
 **Docstring**:
 > List modifications (trims) for a specific vehicle.
 >
-> Returns trim names, engine specs, and production years.
+> Returns trim names, engine and powertrain specs, and production years.
 > One of year or generation is required.
 > Filter by power via horsepower (exact ±2.7 hp) or horsepower_min/max
 > (e.g. "trims over 300 hp" → horsepower_min=300).
 > After getting a modification slug, use ws_search_by_vehicle for fitment data.
+>
+> Each row carries two sibling blocks:
+> - engine: legacy {fuel, capacity, type, power, code}. engine.power is the
+>   headline figure whose source depends on the electrification level:
+>   the combustion engine for combustion-only cars and mild hybrids;
+>   system power (else sum of motors, else engine) for full and plug-in
+>   hybrids; sum of motors (else engine) for range-extenders; system
+>   power (else sum of motors) for BEV/FCEV. engine.fuel is a display string (renamed
+>   without notice, e.g. 'Natural gas' → 'CNG'); group on powertrain fuel
+>   codes instead.
+> - powertrain: combustion_engine, electrification_level, primary_fuel and
+>   secondary_fuel (fuel codes — a real code can be passed back as the
+>   fuel filter; the absence words cannot),
+>   engine_power_hp, system_power_hp, engine_power_secondary_hp, and
+>   motors [{axle, hp, code}]. The full block with kW/PS/hp and fuel
+>   titles is returned by ws_search_by_vehicle.
+>
+> Powertrain semantics:
+> - engine_power_hp = the combustion engine alone on its primary fuel,
+>   excluding any electric motor. This is what most other vehicle-data
+>   providers publish as "power"; use it to reconcile hybrids against
+>   other datasets. On bi-fuel vehicles it may still be the higher of the
+>   engine's two ratings rather than the primary-fuel one (splitting them
+>   into engine_power_secondary is editorial work in progress).
+> - system_power_hp = manufacturer-declared total of the whole powertrain.
+>   A distinct quantity only on full hybrids, plug-in hybrids and EVs with
+>   a motor on each axle; normally null on a single-motor EV, a mild
+>   hybrid, a range-extender and a pure combustion vehicle. NEVER
+>   reconstruct it by adding engine_power and motors — the declared total
+>   is normally lower than their sum.
+> - engine_power_secondary_hp = the same engine's rating on its secondary
+>   fuel (bi-fuel / flex-fuel only). Not a second engine; never add it.
+> - motors = one entry per driven axle. 'front' also holds an aggregated
+>   figure with no front/rear split, or a mild hybrid's starter-generator.
+> - electrification_level: mild_hybrid, full_hybrid, phev, erev, bev, fcev,
+>   or not_applicable (combustion-only), not_reported, unknown.
+>
+> Absence words in enums and fuel codes are data, not errors:
+> not_applicable = cannot apply to this vehicle (a BEV has no engine, a
+> single-fuel car has no secondary fuel) — final. not_reported = applies
+> but not recorded yet — may fill in later. unknown = neither
+> electrification tier nor fuel recorded. So a null engine_power_hp means
+> "no combustion engine" when combustion_engine is not_applicable and
+> "not yet recorded" when it is present; motors: [] on an electrified
+> vehicle means motor data not entered yet; a null
+> engine_power_secondary_hp on a bi-fuel car means the second rating is
+> not recorded yet, not that the engine has a single rating.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -145,13 +192,15 @@ Scenario 4 (via generations):
 | `year` | `int?` | Model year |
 | `generation` | `str?` | Generation slug (alternative to year) |
 | `region` | `list[str]?` | Region slug(s) (e.g. ['usdm'] or ['eudm', 'audm']). Multiple regions give a more comprehensive view. |
-| `fuel` | `str?` | Fuel type filter (e.g. 'diesel', 'electric', 'hybrid', 'petrol') |
+| `fuel` | `str?` | Fuel code — one of: biodiesel_blend, cng, diesel, e100, electric, ethanol_blend, flex_fuel, h2, hybrid, lpg, petrol, petrol_cng, petrol_lpg. One value matches the legacy engine.fuel OR powertrain.primary_fuel OR powertrain.secondary_fuel (e.g. 'lpg' returns dedicated-LPG and petrol/LPG bi-fuel cars alike). Old spellings such as 'natural-gas', 'flex-fuel' or 'e85' are still accepted; any other value is a 400 error. A real fuel code read from powertrain.primary_fuel / secondary_fuel can be passed straight back here; the absence words not_applicable, not_reported and unknown are not fuel codes and are rejected. |
 | `trim` | `str?` | Fuzzy engine/trim name search (e.g. '2.0T', 'V6') |
 | `trim_level` | `str?` | Case-insensitive trim level (e.g. 'EX-L', 'Touring', 'Sport') |
-| `horsepower` | `float?` | Horsepower (±2.7 hp band, e.g. 150) |
-| `horsepower_min` | `float?` | Minimum horsepower (e.g. 300) |
-| `horsepower_max` | `float?` | Maximum horsepower |
+| `horsepower` | `float?` | Horsepower, ±2.7 hp band (e.g. 150). Matches the headline engine.power figure, whose source depends on the electrification level — not always the system total, not always the combustion engine. |
+| `horsepower_min` | `float?` | Minimum horsepower (e.g. 300). Same headline figure as horsepower. |
+| `horsepower_max` | `float?` | Maximum horsepower. Same headline figure as horsepower. |
 | `lang` | `str?` | Translate names (e.g. 'ru'). name_en keeps the English original. |
+
+**Response mapping**: `engine` is passed through untouched (frozen 5-key legacy block); `powertrain` is reduced via `map_powertrain_summary()` in `response.py` — fuel refs → `code`, power objects → `hp`, `motors [{axle, hp, code}]`; all 8 keys are always present so the absence words stay visible. `ws_search_by_vehicle` returns the full block; the classified endpoints do not carry `powertrain`.
 
 ---
 
@@ -199,6 +248,14 @@ Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API T
 > Returns OEM and optional wheel/tire specs including rim diameter, width,
 > offset, bolt pattern, tire sizes, and tire pressure.
 > Each wheel has setup='symmetric' (same front/rear) or 'staggered' (different).
+>
+> Each row also carries the legacy engine block and the full powertrain
+> block as the API returns them: combustion_engine, electrification_level,
+> primary_fuel / secondary_fuel as {code, title}, engine_power /
+> system_power / engine_power_secondary as {kW, PS, hp} or null, and
+> motors [{axle, power, code}]. The field vocabulary, the absence words
+> (not_applicable / not_reported / unknown) and the power semantics are
+> described in ws_list_modifications.
 >
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests fitment information. Do not call in autonomous loops.
@@ -353,7 +410,9 @@ Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API T
 >
 > The API has no year parameter, so 'year' is filtered MCP-side against
 > each modification's production range (start_year/end_year); each row
-> echoes its range so near-misses can be explained.
+> echoes its range so near-misses can be explained. Each row carries
+> engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+> in ws_list_modifications).
 >
 > IMPORTANT: This is a Search method — only call when a user explicitly
 > requests a fitment check. Do not call in autonomous loops.
@@ -390,7 +449,9 @@ Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API T
 >
 > The API has no year parameter, so 'year' is filtered MCP-side against
 > each modification's production range (start_year/end_year); each row
-> echoes its range so near-misses can be explained.
+> echoes its range so near-misses can be explained. Each row carries
+> engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+> in ws_list_modifications).
 >
 > Prefer this over ws_search_by_rim + ws_search_by_vehicle comparison when the
 > user names a specific vehicle.
@@ -432,7 +493,9 @@ Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API T
 >
 > The API has no year parameter, so 'year' is filtered MCP-side against
 > each modification's production range (start_year/end_year); each row
-> echoes its range so near-misses can be explained.
+> echoes its range so near-misses can be explained. Each row carries
+> engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+> in ws_list_modifications).
 >
 > Prefer this over ws_search_by_tire + ws_search_by_vehicle comparison when the
 > user names a specific vehicle.

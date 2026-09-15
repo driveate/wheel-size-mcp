@@ -153,6 +153,14 @@ def register(mcp: FastMCP):
         offset, bolt pattern, tire sizes, and tire pressure.
         Each wheel has setup='symmetric' (same front/rear) or 'staggered' (different).
 
+        Each row also carries the legacy engine block and the full powertrain
+        block as the API returns them: combustion_engine, electrification_level,
+        primary_fuel / secondary_fuel as {code, title}, engine_power /
+        system_power / engine_power_secondary as {kW, PS, hp} or null, and
+        motors [{axle, power, code}]. The field vocabulary, the absence words
+        (not_applicable / not_reported / unknown) and the power semantics are
+        described in ws_list_modifications.
+
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests fitment information. Do not call in autonomous loops.
         """
@@ -390,7 +398,9 @@ def register(mcp: FastMCP):
 
         The API has no year parameter, so 'year' is filtered MCP-side against
         each modification's production range (start_year/end_year); each row
-        echoes its range so near-misses can be explained.
+        echoes its range so near-misses can be explained. Each row carries
+        engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+        in ws_list_modifications).
 
         IMPORTANT: This is a Search method — only call when a user explicitly
         requests a fitment check. Do not call in autonomous loops.
@@ -433,7 +443,9 @@ def register(mcp: FastMCP):
 
         The API has no year parameter, so 'year' is filtered MCP-side against
         each modification's production range (start_year/end_year); each row
-        echoes its range so near-misses can be explained.
+        echoes its range so near-misses can be explained. Each row carries
+        engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+        in ws_list_modifications).
 
         Prefer this over ws_search_by_rim + ws_search_by_vehicle comparison when the
         user names a specific vehicle.
@@ -477,7 +489,9 @@ def register(mcp: FastMCP):
 
         The API has no year parameter, so 'year' is filtered MCP-side against
         each modification's production range (start_year/end_year); each row
-        echoes its range so near-misses can be explained.
+        echoes its range so near-misses can be explained. Each row carries
+        engine {fuel, capacity, hp} and a powertrain summary (field vocabulary
+        in ws_list_modifications).
 
         Prefer this over ws_search_by_tire + ws_search_by_vehicle comparison when the
         user names a specific vehicle.

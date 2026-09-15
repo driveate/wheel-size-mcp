@@ -1,6 +1,6 @@
 [project]
 name = "wheel-size-mcp"
-version = "0.5.1"
+version = "0.6.0"
 description = "MCP server for Wheel Fitment API — enables Claude Code and LLM agents to query vehicle wheel/tire compatibility data"
 readme = "README.md"
 license = "MIT"

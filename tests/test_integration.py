@@ -296,8 +296,8 @@ async def test_calculate_upsteps(call_tool):
         "section_width": 225, "aspect_ratio": 50,
     })
     assert data["total"] > 0
-    assert isinstance(data["options"], list)
-    opt = data["options"][0]
+    assert isinstance(data["results"], list)
+    opt = data["results"][0]
     assert "tire" in opt
     assert "designation" in opt["tire"]
     assert "section_width" in opt["tire"]

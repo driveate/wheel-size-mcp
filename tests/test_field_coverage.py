@@ -39,12 +39,25 @@ EXPECTED_FIELDS = {
         ],
     },
     "ws_calculate_upsteps": {
-        "key": "options",
+        "key": "results",
         "args": {
             "rim_diameter": 17, "rim_width": 7, "rim_offset": 40,
             "section_width": 225, "aspect_ratio": 50,
         },
-        "fields": ["tire", "rim", "is_oe", "difference"],
+        "fields": ["tire", "rim", "is_oe", "step", "difference"],
+    },
+    "ws_find_vehicle_modifications_for_tire": {
+        "key": "results",
+        "args": {
+            "make": "mitsubishi", "model": "outlander", "generation": "a65f0f2858",
+            "section_width": 235, "aspect_ratio": 60, "rim_diameter": 18,
+        },
+        "fields": [
+            "modification", "trim", "body", "years", "regions", "oem_rim", "oem_tire",
+            "oem_rim_diameter", "oem_rim_width", "oem_rim_offset", "oem_tire_width_mm",
+            "oem_tire_diameter_mm", "oem_tire_aspect_ratio", "ow_delta_mm", "od_delta_mm",
+            "od_delta_percent", "ar_delta", "load_kg", "load_index",
+        ],
     },
     "ws_search_by_vehicle": {
         "key": "results",

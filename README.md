@@ -152,7 +152,7 @@ The MCP endpoint is served at `http://127.0.0.1:8000/mcp/`. Point HTTP-capable c
 
 **Security**: the server binds to `127.0.0.1` by default. The `WHEELSIZE_API_KEY` lives on the server side, so anyone who can reach the port consumes your API quota — expose it beyond localhost (`--host 0.0.0.0`) only behind a reverse proxy that handles authentication.
 
-## Available Tools (21)
+## Available Tools (22)
 
 ### Catalog — vehicle lookup
 
@@ -176,7 +176,7 @@ The MCP endpoint is served at `http://127.0.0.1:8000/mcp/`. Point HTTP-capable c
 | `ws_check_rim_fitment_for_vehicle` | "Will these rims fit my 2020 Civic?" — one-call fitment check. |
 | `ws_check_tire_fitment_for_vehicle` | Same for a metric tire size. |
 | `ws_check_hf_tire_fitment_for_vehicle` | Same for a high-flotation tire size. |
-| `ws_calculate_upsteps` | Plus/minus sizing calculator with width/diameter tolerances. |
+| `ws_calculate_upsteps` | Plus/minus sizing calculator: asymmetric diameter range (`steps_min`/`steps_max`), per-diameter counts, width/diameter tolerances. |
 
 ### Classified — product cards for e-commerce
 
@@ -186,6 +186,7 @@ The MCP endpoint is served at `http://127.0.0.1:8000/mcp/`. Point HTTP-capable c
 | `ws_find_vehicles_for_rim` | Vehicles that fit a given rim (geometric 2D filtering). |
 | `ws_find_vehicle_modifications_for_rim` | Drill down into trims for a specific generation. |
 | `ws_find_vehicles_for_tire` | Vehicles that use a specific tire size. |
+| `ws_find_vehicle_modifications_for_tire` | Drill down into trims for a generation that uses the tire. |
 | `ws_find_vehicles_for_package` | Vehicles compatible with a rim + tire combo. |
 | `ws_find_vehicle_modifications_for_package` | Drill down into trims for a rim + tire package. |
 

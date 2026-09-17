@@ -97,8 +97,8 @@ def map_classified_generation_row(item: dict) -> dict:
     }
 
 
-def map_drilldown_row(item: dict) -> dict:
-    """Project a classified .../search/modifications/ row to essential fields."""
+def _drilldown_base(item: dict) -> dict:
+    """Fields every classified .../search/modifications/ row shares (rim, tire and package variants)."""
     end = item.get("production_end_year") or "present"
     return {
         "modification": item["slug"],
@@ -108,11 +108,30 @@ def map_drilldown_row(item: dict) -> dict:
         "regions": item.get("regions", []),
         "oem_rim": item.get("oem_rim"),
         "oem_tire": item.get("oem_tire"),
-        "fs_delta_mm": item.get("fs_delta_mm"),
-        "bs_delta_mm": item.get("bs_delta_mm"),
-        "cb_diff_mm": item.get("cb_diff_mm"),
-        "load_kg": item.get("load_kg"),
     }
+
+
+# Rim-geometry deltas vs the searched rim — by_rim and by_package drill-downs only.
+_RIM_DRILLDOWN_EXTRAS = ("fs_delta_mm", "bs_delta_mm", "cb_diff_mm", "load_kg")
+
+# The by_tire drill-down has no rim geometry (no cb_diff_mm / fs_ / bs_ / oem_frontspace / oem_backspace);
+# it carries the closest OEM pair, the tire-match deltas and load data instead.
+_TIRE_DRILLDOWN_EXTRAS = (
+    "oem_rim_diameter", "oem_rim_width", "oem_rim_offset",
+    "oem_tire_width_mm", "oem_tire_diameter_mm", "oem_tire_aspect_ratio",
+    "ow_delta_mm", "od_delta_mm", "od_delta_percent", "ar_delta",
+    "load_kg", "load_index",
+)
+
+
+def map_drilldown_row(item: dict) -> dict:
+    """Project a classified by_rim / by_package .../search/modifications/ row to essential fields."""
+    return {**_drilldown_base(item), **{k: item.get(k) for k in _RIM_DRILLDOWN_EXTRAS}}
+
+
+def map_tire_drilldown_row(item: dict) -> dict:
+    """Project a classified by_tire/search/modifications/ row to its full field set."""
+    return {**_drilldown_base(item), **{k: item.get(k) for k in _TIRE_DRILLDOWN_EXTRAS}}
 
 
 def paginated_response(items: list, total: int, offset: int, limit: int) -> dict:

@@ -12,7 +12,12 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from ws_mcp.client import DEFAULT_LIMIT, api
-from ws_mcp.response import map_classified_generation_row, map_drilldown_row, paginated_response
+from ws_mcp.response import (
+    map_classified_generation_row,
+    map_drilldown_row,
+    map_tire_drilldown_row,
+    paginated_response,
+)
 from ws_mcp.slugify import normalize_slug
 from ws_mcp.tools._annotations import CLASSIFIED_ANNOTATIONS
 
@@ -288,6 +293,7 @@ def register(mcp: FastMCP):
         no bolt pattern or backspace filtering.
 
         For e-commerce: "This tire fits: Honda Civic, Toyota Camry..."
+        To drill into a specific generation, use ws_find_vehicle_modifications_for_tire.
         """
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,
@@ -300,6 +306,61 @@ def register(mcp: FastMCP):
             for item in data["data"]
         ]
         return paginated_response(items, total, offset, limit)
+
+    @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
+    async def ws_find_vehicle_modifications_for_tire(
+        make: Annotated[str, Field(description="Make slug from ws_find_vehicles_for_tire results")],
+        model: Annotated[str, Field(description="Model slug from ws_find_vehicles_for_tire results")],
+        generation: Annotated[str, Field(description="Generation slug from ws_find_vehicles_for_tire results")],
+        section_width: _SectionWidth,
+        aspect_ratio: _AspectRatio,
+        rim_diameter: _RimDiameter,
+        limit: _Limit = DEFAULT_LIMIT,
+        offset: _Offset = 0,
+    ) -> dict:
+        """Drill down into individual trims for a generation from ws_find_vehicles_for_tire.
+
+        PREREQUISITES — call ws_find_vehicles_for_tire first to get:
+        - make, model, generation slugs (from the results; the catalog slugs
+          from ws_list_generations are the same and work here too)
+        - Use the same tire parameters (section_width, aspect_ratio, rim_diameter)
+          as the parent search. There are no tolerance or sort parameters:
+          matching is the same as the parent — exact rim diameter, tire width
+          and overall diameter within a fixed ±2 mm.
+
+        Returns per-trim rows: production years, regions, the closest OEM
+        rim/tire pair (oem_rim, oem_tire, oem_rim_diameter/width/offset,
+        oem_tire_width_mm/diameter_mm/aspect_ratio), the match deltas against
+        that pair (ow_delta_mm, od_delta_mm, od_delta_percent, ar_delta) and
+        load data (load_kg, load_index).
+
+        The mm deltas are the match precision against the nearest OEM pair
+        (always within ±2 mm) — NOT how far the tire departs from stock.
+        For upsize/downsize (plus/minus sizing) use ws_calculate_upsteps.
+        oem_tire_aspect_ratio and ar_delta are null for high-flotation and
+        alpha-numeric OEM tires (e.g. 37x12.50R17LT, G78-14).
+        The result can be empty with HTTP 200 for a wrong slug or tire params
+        that differ from the parent search — re-check those first. A genuinely
+        empty drill-down also happens briefly after a catalog update (parent
+        and drill-down are cached independently); that is not an error.
+        """
+        params = {
+            "make": normalize_slug(make), "model": normalize_slug(model),
+            "generation": normalize_slug(generation),
+            "section_width": section_width, "aspect_ratio": aspect_ratio,
+            "rim_diameter": rim_diameter, "limit": limit, "offset": offset,
+        }
+        data = await api.get("/v2/classified/by_tire/search/modifications/", params)
+        total = data["meta"]["count"]
+        items = [map_tire_drilldown_row(item) for item in data["data"]]
+        result = paginated_response(items, total, offset, limit)
+        if total == 0:
+            result["hint"] = (
+                "No trims matched. Re-check the make/model/generation slugs and that section_width, "
+                "aspect_ratio and rim_diameter equal the parent ws_find_vehicles_for_tire call; "
+                "an empty result right after a catalog update is expected (independent 1 h caches)."
+            )
+        return result
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_package(

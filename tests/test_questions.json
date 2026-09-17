@@ -431,6 +431,12 @@
         "tests": "Package drill-down chain: generations → specific trims (was gap-01, unblocked by P3)"
       },
       {
+        "id": "cls-07b",
+        "question": "For a 235/60R18 tire product page, list the compatible vehicles and then show the individual trims of the first generation in that list",
+        "expected_tools": ["ws_find_vehicles_for_tire", "ws_find_vehicle_modifications_for_tire"],
+        "tests": "Tire drill-down chain: generations → specific trims (WHEEL-7605)"
+      },
+      {
         "id": "cls-08",
         "question": "For this 18x8 ET40 5x114.3 wheel product page, sort compatible vehicles by closest fitment",
         "expected_tools": ["ws_find_vehicles_for_rim"],

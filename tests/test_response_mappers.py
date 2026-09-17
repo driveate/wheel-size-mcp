@@ -6,6 +6,7 @@ from ws_mcp.response import (
     map_drilldown_row,
     map_modification_row,
     map_powertrain_summary,
+    map_tire_drilldown_row,
 )
 
 
@@ -168,3 +169,21 @@ def test_map_modification_row_includes_powertrain_summary():
 def test_map_modification_row_without_powertrain():
     row = map_modification_row({"slug": "m1", "name": "x", "engine": {"fuel": "Petrol"}})
     assert row["powertrain"] is None
+
+
+def test_map_tire_drilldown_row_keeps_full_field_set_and_no_rim_geometry():
+    item = {
+        "slug": "fcad99f8fe", "trim": "1.5T HEV", "body": None,
+        "production_start_year": 2026, "production_end_year": None, "regions": ["cdm", "usdm"],
+        "oem_rim": "7.5Jx18 ET35", "oem_tire": "235/60R18", "oem_rim_diameter": 18, "oem_rim_width": 7.5,
+        "oem_rim_offset": 35, "oem_tire_width_mm": 235, "oem_tire_diameter_mm": 739, "oem_tire_aspect_ratio": 60,
+        "ow_delta_mm": 0, "od_delta_mm": 0.2, "od_delta_percent": 0.03, "ar_delta": 0, "load_kg": 875,
+        "load_index": 103,
+        "cb_diff_mm": "must not leak",
+    }
+    row = map_tire_drilldown_row(item)
+    assert row["modification"] == "fcad99f8fe"
+    assert row["years"] == "2026-present"
+    assert row["od_delta_percent"] == 0.03
+    assert "cb_diff_mm" not in row
+    assert len(row) == 19

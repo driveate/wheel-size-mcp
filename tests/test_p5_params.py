@@ -187,3 +187,95 @@ async def test_get_spec_metadata_cb_passthrough(captured):
     captured["response"] = {"mode": "rim"}
     await _call("ws_get_spec_metadata", {"rim_diameter": 18, "rim_width": 8, "cb": 71.6})
     assert captured["calls"][0]["params"]["cb"] == 71.6
+
+
+# ---------------------------------------------------------------------------
+# ws_calculate_upsteps — asymmetric diameter range (WHEEL-7609 / API WHEEL-7604 step A)
+# ---------------------------------------------------------------------------
+
+OE_ARGS = {"rim_diameter": 18, "rim_width": 7.5, "rim_offset": 35, "section_width": 235, "aspect_ratio": 60}
+
+
+def _upsteps_response() -> dict:
+    """Shape per spec §3.6: step on every row, by_diameter with an empty diameter."""
+    return {
+        "data": [
+            {"tire": {"designation": "225/75 R 17", "section_width": 225, "aspect_ratio": 75, "weight": 14.91},
+             "rim": {"designation": "17 ⨯ 6J", "diameter": 17.0, "width": 6.0, "offset": 29, "backspacing": 118,
+                     "weight": 8.03},
+             "is_oe": False, "step": -1,
+             "difference": {"s_relative": -7.08, "s_absolute": -17.0, "do_relative": 4.19, "do_absolute": 31.0}},
+            {"tire": {"designation": "235/60 R 18", "section_width": 235, "aspect_ratio": 60, "weight": 13.2},
+             "rim": {"designation": "18 ⨯ 7.5J", "diameter": 18.0, "width": 7.5, "offset": 35, "backspacing": 130,
+                     "weight": 9.1},
+             "is_oe": True, "step": 0,
+             "difference": {"s_relative": 0, "s_absolute": 0, "do_relative": 0, "do_absolute": 0}},
+        ],
+        "meta": {
+            "count": 2,
+            "by_rim": {"17 ⨯ 6J": 1, "18 ⨯ 7.5J": 1},
+            "by_diameter": {"17": {"step": -1, "count": 1}, "18": {"step": 0, "count": 1},
+                            "19": {"step": 1, "count": 0}},
+        },
+    }
+
+
+async def test_calculate_upsteps_steps_range_passthrough(captured):
+    captured["response"] = _upsteps_response()
+    await _call("ws_calculate_upsteps", {**OE_ARGS, "steps_min": -1, "steps_max": 2})
+    params = captured["calls"][0]["params"]
+    assert params["steps_min"] == -1
+    assert params["steps_max"] == 2
+    assert "steps" not in params
+
+
+async def test_calculate_upsteps_deprecated_steps_still_sent(captured):
+    captured["response"] = _upsteps_response()
+    await _call("ws_calculate_upsteps", {**OE_ARGS, "steps": -1})
+    params = captured["calls"][0]["params"]
+    assert params["steps"] == -1
+    assert "steps_min" not in params and "steps_max" not in params
+
+
+@pytest.mark.parametrize("extra", [{"steps_min": -1}, {"steps_max": 1}, {"steps_min": -1, "steps_max": 1}])
+async def test_calculate_upsteps_rejects_steps_with_range_before_calling_api(captured, extra):
+    with pytest.raises(ToolError, match="not both"):
+        await mcp.call_tool("ws_calculate_upsteps", {**OE_ARGS, "steps": 1, **extra})
+    assert captured["calls"] == []
+
+
+async def test_calculate_upsteps_exposes_step_and_by_diameter(captured):
+    captured["response"] = _upsteps_response()
+    data = await _call("ws_calculate_upsteps", OE_ARGS)
+    assert data["total"] == 2
+    assert data["by_diameter"] == {"17": {"step": -1, "count": 1}, "18": {"step": 0, "count": 1},
+                                   "19": {"step": 1, "count": 0}}
+    assert data["by_rim"] == {"17 ⨯ 6J": 1, "18 ⨯ 7.5J": 1}
+    assert [o["step"] for o in data["results"]] == [-1, 0]
+    oe = [o for o in data["results"] if o["is_oe"]]
+    assert len(oe) == 1 and oe[0]["step"] == 0
+    assert oe[0]["rim"]["designation"] == "18 ⨯ 7.5J"
+
+
+async def test_calculate_upsteps_accepts_api_ranges(captured):
+    """Types/ranges follow the API: float offset from -50, widths to 13 in, catalog diameters up to 30."""
+    captured["response"] = _upsteps_response()
+    await _call("ws_calculate_upsteps", {
+        "rim_diameter": 30, "rim_width": 13, "rim_offset": -49.5, "section_width": 265, "aspect_ratio": 40,
+    })
+    params = captured["calls"][0]["params"]
+    assert params["rim_offset"] == -49.5
+    assert params["rim_diameter"] == 30
+    assert "limit" not in params and "offset" not in params, "pagination is MCP-side, the API has none"
+
+
+async def test_calculate_upsteps_paginates_options_mcp_side(captured):
+    """Option rows are paged; by_diameter / by_rim / total always describe the whole list."""
+    resp = _upsteps_response()
+    captured["response"] = resp
+    page1 = await _call("ws_calculate_upsteps", {**OE_ARGS, "limit": 1})
+    assert page1["total"] == 2 and len(page1["results"]) == 1 and page1["has_more"] is True
+    assert page1["next_offset"] == 1
+    assert page1["by_diameter"] == resp["meta"]["by_diameter"]
+    page2 = await _call("ws_calculate_upsteps", {**OE_ARGS, "limit": 1, "offset": 1})
+    assert page2["results"][0]["is_oe"] is True and page2["has_more"] is False

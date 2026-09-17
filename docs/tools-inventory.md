@@ -1,6 +1,6 @@
 # wheel-size-mcp MCP Tools Inventory
 
-21 tools grouped into 4 modules. Each tool wraps a single Wheel Fitment API endpoint (`/v2/...`), except `ws_get_spec_metadata` and `ws_check_*_fitment_for_vehicle`, which add MCP-side logic on top of the API response.
+22 tools grouped into 4 modules. Each tool wraps a single Wheel Fitment API endpoint (`/v2/...`), except `ws_get_spec_metadata`, `ws_check_*_fitment_for_vehicle` and `ws_calculate_upsteps`, which add MCP-side logic on top of the API response.
 
 ---
 
@@ -526,29 +526,51 @@ Fitment search. All except `ws_calculate_upsteps` are user-initiated only (API T
 **API**: `GET /v2/upsteps/`
 
 **Docstring**:
-> Calculate plus/minus sizing alternatives for a wheel/tire combo.
+> Calculate plus/minus sizing candidates for an OE wheel/tire combo.
 >
-> Given OEM wheel specs, returns safe replacement sizes at different
-> plus/minus levels (e.g. +1, +2 = larger rim with lower-profile tire).
-> Tighten do_max for "without changing the overall diameter" requests.
+> Given the OE rim and tire, enumerates rim diameters from steps_min to
+> steps_max around OE (e.g. steps_min=-1, steps_max=2 with an 18-inch OE
+> covers 17-20 inches in one call; the OE diameter is always included)
+> and returns the tire/rim combinations whose design section width and
+> overall diameter stay within s_max / do_max of OE. Tighten do_max for
+> "without changing the overall diameter" requests.
 >
-> This is a calculator tool — can be called freely without user initiation.
+> Each option carries step = rim diameter minus OE diameter in whole
+> inches (0 = OE diameter; 17.5 counts as 17). Exactly one option has
+> is_oe=true (step 0) — it echoes the requested OE combo.
+> by_diameter lists every enumerated diameter in order, including those
+> with count 0, as {"17": {"step": -1, "count": 12}, ...} — use it to
+> build -1 / OE / +1 tabs. by_rim counts options per rim designation.
+> Both summarise the WHOLE candidate list; total counts tire-rim
+> combinations. The option rows are paginated MCP-side (limit/offset,
+> API order: by diameter, then rim width) — a wide range with loose
+> tolerances can exceed 300 options, so page through has_more.
+>
+> This is a geometric calculator only: it does not check load or speed
+> ratings, brake/arch clearance, staggered setups or high-flotation
+> sizes. Can be called freely without user initiation.
 
 **Parameters**:
 | Parameter | Type | Description |
 |----------|-----|----------|
-| `rim_diameter` | `float` | OE rim diameter in inches |
-| `rim_width` | `float` | OE rim width in inches |
-| `rim_offset` | `int` | OE rim offset in mm |
-| `section_width` | `int` | OE tire section width in mm |
-| `aspect_ratio` | `int` | OE tire aspect ratio |
-| `steps` | `int?` | Plus/minus steps (default +2) |
-| `s_max` | `int?` | Max section width difference, % (default 10) |
-| `do_max` | `int?` | Max overall diameter difference, % (default 5). Use 2-3 to keep speedo accurate. |
+| `rim_diameter` | `float` | OE rim diameter in inches — a catalog diameter (10, 12-26 incl. 16.5/17.5/19.5/22.5, 28, 30); other values are a 400 that lists the valid ones. |
+| `rim_width` | `float` | OE rim width in inches (e.g. 7.5) |
+| `rim_offset` | `float` | OE rim offset (ET) in mm |
+| `section_width` | `int` | OE tire nominal section width in mm; must end in 5 (ISO 4000-1, e.g. 235). The size must exist in the metric tire catalog for that rim diameter. |
+| `aspect_ratio` | `int` | OE tire nominal aspect ratio, %; a multiple of 5 (82 for legacy 82-series sizes). |
+| `steps_min` | `int?` | Lowest rim diameter step below OE, 1-inch steps (default 0 = OE only downwards). E.g. -1 with an 18-inch OE starts the range at 17 inches. |
+| `steps_max` | `int?` | Highest rim diameter step above OE, 1-inch steps (default 2). Defaults are independent: steps_min=-1 alone means -1..+2. |
+| `steps` | `int?` | DEPRECATED — use steps_min/steps_max. steps=n (n>0) = steps_max=n; steps=-n = steps_min=-n and steps_max=0; steps=0 = OE diameter only. Cannot be combined with steps_min/steps_max. |
+| `s_max` | `int?` | Max relative difference of the design section width from OE, % (default 10) |
+| `do_max` | `int?` | Max relative difference of the overall diameter from OE, % (default 5). Use 2-3 to keep the speedometer accurate. |
+| `limit` | `int` | Options per page (default 50) |
+| `offset` | `int` | Pagination offset into the option list |
 
 ---
 
-## Classified (`tools/classified.py`) — 6 tools
+**MCP-side logic**: `steps` (deprecated) and `steps_min` / `steps_max` are mutually exclusive — the tool raises `ToolError` before calling the API. The API returns the whole candidate list unpaginated; the tool pages it MCP-side (`limit`/`offset`, `paginated_response`) while `by_diameter` / `by_rim` / `total` always describe the whole list. Each option carries `step`.
+
+## Classified (`tools/classified.py`) — 7 tools
 
 ### Shared geometric parameters
 
@@ -710,6 +732,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > no bolt pattern or backspace filtering.
 >
 > For e-commerce: "This tire fits: Honda Civic, Toyota Camry..."
+> To drill into a specific generation, use ws_find_vehicle_modifications_for_tire.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -719,6 +742,53 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 | `rim_diameter` | `float` | Rim diameter in inches |
 | `limit` | `int` | Results per page |
 | `offset` | `int` | Pagination offset |
+
+---
+
+### `ws_find_vehicle_modifications_for_tire`
+
+**API**: `GET /v2/classified/by_tire/search/modifications/`
+
+**Docstring**:
+> Drill down into individual trims for a generation from ws_find_vehicles_for_tire.
+>
+> PREREQUISITES — call ws_find_vehicles_for_tire first to get:
+> - make, model, generation slugs (from the results; the catalog slugs
+>   from ws_list_generations are the same and work here too)
+> - Use the same tire parameters (section_width, aspect_ratio, rim_diameter)
+>   as the parent search. There are no tolerance or sort parameters:
+>   matching is the same as the parent — exact rim diameter, tire width
+>   and overall diameter within a fixed ±2 mm.
+>
+> Returns per-trim rows: production years, regions, the closest OEM
+> rim/tire pair (oem_rim, oem_tire, oem_rim_diameter/width/offset,
+> oem_tire_width_mm/diameter_mm/aspect_ratio), the match deltas against
+> that pair (ow_delta_mm, od_delta_mm, od_delta_percent, ar_delta) and
+> load data (load_kg, load_index).
+>
+> The mm deltas are the match precision against the nearest OEM pair
+> (always within ±2 mm) — NOT how far the tire departs from stock.
+> For upsize/downsize (plus/minus sizing) use ws_calculate_upsteps.
+> oem_tire_aspect_ratio and ar_delta are null for high-flotation and
+> alpha-numeric OEM tires (e.g. 37x12.50R17LT, G78-14).
+> The result can be empty with HTTP 200 for a wrong slug or tire params
+> that differ from the parent search — re-check those first. A genuinely
+> empty drill-down also happens briefly after a catalog update (parent
+> and drill-down are cached independently); that is not an error.
+
+**Parameters**:
+| Parameter | Type | Description |
+|----------|-----|----------|
+| `make` | `str` | Make slug from ws_find_vehicles_for_tire results |
+| `model` | `str` | Model slug from ws_find_vehicles_for_tire results |
+| `generation` | `str` | Generation slug from ws_find_vehicles_for_tire results |
+| `section_width` | `int` | Tire section width in mm |
+| `aspect_ratio` | `int` | Tire aspect ratio |
+| `rim_diameter` | `float` | Rim diameter in inches |
+| `limit` | `int` | Results per page |
+| `offset` | `int` | Pagination offset |
+
+**Response mapping**: `map_tire_drilldown_row()` in `response.py` — the full API field set (closest OEM rim/tire pair, `ow_delta_mm` / `od_delta_mm` / `od_delta_percent` / `ar_delta`, load). No `cb_diff_mm` / `fs_delta_mm` / `bs_delta_mm`: the API does not compute rim geometry for a tire-only search.
 
 ---
 
@@ -806,10 +876,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 | ---------- | ------------ | -------------- | ------------------- |
 | Catalog    | 6            | 6              | None                |
 | Search     | 8            | 8              | ToS (except upsteps)|
-| Classified | 6            | 6              | None                |
+| Classified | 7            | 7              | None                |
 | Utility    | 1            | 1              | None                |
-| **Total**  | **21**       | **21**         | —                   |
+| **Total**  | **22**       | **22**         | —                   |
 
 
-**Simple tools (1:1 with API)**: 16
-**Composite tools (API + MCP-side logic)**: 4 (`ws_get_spec_metadata`, `ws_check_rim_fitment_for_vehicle`, `ws_check_tire_fitment_for_vehicle`, `ws_check_hf_tire_fitment_for_vehicle`)
+**Simple tools (1:1 with API)**: 17
+**Composite tools (API + MCP-side logic)**: 5 (`ws_get_spec_metadata`, `ws_check_rim_fitment_for_vehicle`, `ws_check_tire_fitment_for_vehicle`, `ws_check_hf_tire_fitment_for_vehicle`, `ws_calculate_upsteps`)

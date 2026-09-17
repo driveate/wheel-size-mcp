@@ -12,7 +12,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
-from ws_mcp.client import DEFAULT_LIMIT, api
+from ws_mcp.client import DEFAULT_LIMIT, MAX_ITEMS, api
 from ws_mcp.response import (
     filter_vehicle_fitment,
     map_car_search_row,
@@ -509,60 +509,135 @@ def register(mcp: FastMCP):
 
     @mcp.tool(annotations=SEARCH_ANNOTATIONS, tags={"search"})
     async def ws_calculate_upsteps(
-        rim_diameter: Annotated[float, Field(ge=8, le=26, description="OE rim diameter in inches")],
-        rim_width: Annotated[float, Field(ge=2, le=14, description="OE rim width in inches")],
-        rim_offset: Annotated[int, Field(ge=-150, le=150, description="OE rim offset in mm")],
-        section_width: Annotated[int, Field(ge=115, le=365, description="OE tire section width in mm")],
-        aspect_ratio: Annotated[int, Field(ge=25, le=95, description="OE tire aspect ratio")],
-        steps: Annotated[int | None, Field(ge=-3, le=3, description="Plus/minus steps (default +2)")] = None,
+        rim_diameter: Annotated[
+            float,
+            Field(
+                ge=10, le=30,
+                description="OE rim diameter in inches — a catalog diameter (10, 12-26 incl. 16.5/17.5/19.5/22.5, "
+                "28, 30); other values are a 400 that lists the valid ones.",
+            ),
+        ],
+        rim_width: Annotated[float, Field(ge=2, le=13, description="OE rim width in inches (e.g. 7.5)")],
+        rim_offset: Annotated[float, Field(ge=-50, le=150, description="OE rim offset (ET) in mm")],
+        section_width: Annotated[
+            int,
+            Field(
+                ge=95, le=525,
+                description="OE tire nominal section width in mm; must end in 5 (ISO 4000-1, e.g. 235). "
+                "The size must exist in the metric tire catalog for that rim diameter.",
+            ),
+        ],
+        aspect_ratio: Annotated[
+            int,
+            Field(
+                ge=20, le=95,
+                description="OE tire nominal aspect ratio, %; a multiple of 5 (82 for legacy 82-series sizes).",
+            ),
+        ],
+        steps_min: Annotated[
+            int | None,
+            Field(
+                ge=-3, le=0,
+                description="Lowest rim diameter step below OE, 1-inch steps (default 0 = OE only downwards). "
+                "E.g. -1 with an 18-inch OE starts the range at 17 inches.",
+            ),
+        ] = None,
+        steps_max: Annotated[
+            int | None,
+            Field(
+                ge=0, le=3,
+                description="Highest rim diameter step above OE, 1-inch steps (default 2). "
+                "Defaults are independent: steps_min=-1 alone means -1..+2.",
+            ),
+        ] = None,
+        steps: Annotated[
+            int | None,
+            Field(
+                ge=-3, le=3,
+                description="DEPRECATED — use steps_min/steps_max. steps=n (n>0) = steps_max=n; "
+                "steps=-n = steps_min=-n and steps_max=0; steps=0 = OE diameter only. "
+                "Cannot be combined with steps_min/steps_max.",
+            ),
+        ] = None,
         s_max: Annotated[
             int | None,
-            Field(ge=0, le=25, description="Max section width difference, % (default 10)"),
+            Field(
+                ge=0, le=25,
+                description="Max relative difference of the design section width from OE, % (default 10)",
+            ),
         ] = None,
         do_max: Annotated[
             int | None,
             Field(
                 ge=0, le=15,
-                description="Max overall diameter difference, % (default 5). Use 2-3 to keep speedo accurate.",
+                description="Max relative difference of the overall diameter from OE, % (default 5). "
+                "Use 2-3 to keep the speedometer accurate.",
             ),
         ] = None,
+        limit: Annotated[int, Field(ge=1, le=MAX_ITEMS, description="Options per page (default 50)")] = MAX_ITEMS,
+        offset: Annotated[int, Field(ge=0, description="Pagination offset into the option list")] = 0,
     ) -> dict:
-        """Calculate plus/minus sizing alternatives for a wheel/tire combo.
+        """Calculate plus/minus sizing candidates for an OE wheel/tire combo.
 
-        Given OEM wheel specs, returns safe replacement sizes at different
-        plus/minus levels (e.g. +1, +2 = larger rim with lower-profile tire).
-        Tighten do_max for "without changing the overall diameter" requests.
+        Given the OE rim and tire, enumerates rim diameters from steps_min to
+        steps_max around OE (e.g. steps_min=-1, steps_max=2 with an 18-inch OE
+        covers 17-20 inches in one call; the OE diameter is always included)
+        and returns the tire/rim combinations whose design section width and
+        overall diameter stay within s_max / do_max of OE. Tighten do_max for
+        "without changing the overall diameter" requests.
 
-        This is a calculator tool — can be called freely without user initiation.
+        Each option carries step = rim diameter minus OE diameter in whole
+        inches (0 = OE diameter; 17.5 counts as 17). Exactly one option has
+        is_oe=true (step 0) — it echoes the requested OE combo.
+        by_diameter lists every enumerated diameter in order, including those
+        with count 0, as {"17": {"step": -1, "count": 12}, ...} — use it to
+        build -1 / OE / +1 tabs. by_rim counts options per rim designation.
+        Both summarise the WHOLE candidate list; total counts tire-rim
+        combinations. The option rows are paginated MCP-side (limit/offset,
+        API order: by diameter, then rim width) — a wide range with loose
+        tolerances can exceed 300 options, so page through has_more.
+
+        This is a geometric calculator only: it does not check load or speed
+        ratings, brake/arch clearance, staggered setups or high-flotation
+        sizes. Can be called freely without user initiation.
         """
+        if steps is not None and (steps_min is not None or steps_max is not None):
+            raise ToolError(
+                "Use either steps_min/steps_max or the deprecated steps, not both. "
+                "steps=n equals steps_max=n; steps=-n equals steps_min=-n with steps_max=0."
+            )
         params = {
             "rim_diameter": rim_diameter, "rim_width": rim_width,
             "rim_offset": rim_offset, "section_width": section_width,
-            "aspect_ratio": aspect_ratio, "steps": steps,
+            "aspect_ratio": aspect_ratio,
+            "steps_min": steps_min, "steps_max": steps_max, "steps": steps,
             "s_max": s_max, "do_max": do_max,
         }
         data = await api.get("/v2/upsteps/", params)
-        return {
-            "total": data["meta"]["count"],
-            "options": [
-                {
-                    "tire": {
-                        "designation": opt["tire"]["designation"],
-                        "section_width": opt["tire"]["section_width"],
-                        "aspect_ratio": opt["tire"]["aspect_ratio"],
-                        "weight": opt["tire"].get("weight"),
-                    },
-                    "rim": {
-                        "designation": opt["rim"]["designation"],
-                        "diameter": opt["rim"]["diameter"],
-                        "width": opt["rim"]["width"],
-                        "offset": opt["rim"]["offset"],
-                        "backspacing": opt["rim"]["backspacing"],
-                        "weight": opt["rim"].get("weight"),
-                    },
-                    "is_oe": opt.get("is_oe", False),
-                    "difference": opt.get("difference", {}),
-                }
-                for opt in data["data"]
-            ],
-        }
+        meta = data["meta"]
+        options = [
+            {
+                "tire": {
+                    "designation": opt["tire"]["designation"],
+                    "section_width": opt["tire"]["section_width"],
+                    "aspect_ratio": opt["tire"]["aspect_ratio"],
+                    "weight": opt["tire"].get("weight"),
+                },
+                "rim": {
+                    "designation": opt["rim"]["designation"],
+                    "diameter": opt["rim"]["diameter"],
+                    "width": opt["rim"]["width"],
+                    "offset": opt["rim"]["offset"],
+                    "backspacing": opt["rim"]["backspacing"],
+                    "weight": opt["rim"].get("weight"),
+                },
+                "is_oe": opt.get("is_oe", False),
+                "step": opt.get("step"),
+                "difference": opt.get("difference", {}),
+            }
+            for opt in data["data"]
+        ]
+        result = paginated_response(options[offset : offset + limit], meta["count"], offset, limit)
+        result["by_diameter"] = meta.get("by_diameter", {})
+        result["by_rim"] = meta.get("by_rim", {})
+        return result

@@ -43,7 +43,8 @@ comparing manually.
 1. ws_get_spec_metadata(...) → understand if this spec is common/unusual
 2. ws_find_vehicles_for_rim/tire/package(...) → vehicles fitting this spec
    (sort='fitment' puts closest matches first; diameter_range widens ±N inch)
-3. ws_find_vehicle_modifications_for_rim/package(make, model, generation, ...) → drill into trims
+3. ws_find_vehicle_modifications_for_rim/tire/package(make, model, generation, ...) → drill into trims
+   (same spec params as the parent search; the tire variant has no tolerance/sort params)
 
 ## TIRE SIZE SYSTEMS
 - Metric (225/45R17): ws_search_by_tire, ws_check_tire_fitment_for_vehicle

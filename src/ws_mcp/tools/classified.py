@@ -122,6 +122,10 @@ def register(mcp: FastMCP):
         also include tires for ±N inch rim diameters.
 
         Useful for tire product recommendations on wheel product pages.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests tire recommendations for a rim.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
@@ -179,6 +183,10 @@ def register(mcp: FastMCP):
 
         For e-commerce product pages: "This wheel fits: BMW X5, Audi Q7..."
         To drill into a specific generation, use ws_find_vehicle_modifications_for_rim.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests a compatibility list or product card for a rim.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,
@@ -232,6 +240,10 @@ def register(mcp: FastMCP):
 
         Returns per-vehicle rows with OEM wheel specs (rim, tire, frontspace,
         backspace) and fitment deltas vs the searched rim.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests the trims behind a rim compatibility result.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model),
@@ -280,6 +292,10 @@ def register(mcp: FastMCP):
         Returns per-vehicle rows with OEM wheel specs (rim, tire) and fitment
         deltas vs the searched rim + tire package. Completes the e-commerce
         chain: package search → generations → specific trims.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests the trims behind a package compatibility result.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model),
@@ -313,6 +329,10 @@ def register(mcp: FastMCP):
 
         For e-commerce: "This tire fits: Honda Civic, Toyota Camry..."
         To drill into a specific generation, use ws_find_vehicle_modifications_for_tire.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests a compatibility list or product card for a tire.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "section_width": section_width, "aspect_ratio": aspect_ratio,
@@ -362,6 +382,10 @@ def register(mcp: FastMCP):
         that differ from the parent search — re-check those first. A genuinely
         empty drill-down also happens briefly after a catalog update (parent
         and drill-down are cached independently); that is not an error.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests the trims behind a tire compatibility result.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "make": normalize_slug(make), "model": normalize_slug(model),
@@ -403,6 +427,10 @@ def register(mcp: FastMCP):
 
         For e-commerce combo/bundle product pages.
         To drill into a specific generation, use ws_find_vehicle_modifications_for_package.
+
+        IMPORTANT: This is a Classified method — only call when a user explicitly
+        requests a compatibility list or product card for a rim + tire package.
+        Do not call in autonomous loops or for bulk generation.
         """
         params = {
             "bolt_pattern": bolt_pattern, "rim_diameter": rim_diameter,

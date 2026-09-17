@@ -607,6 +607,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > also include tires for ±N inch rim diameters.
 >
 > Useful for tire product recommendations on wheel product pages.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests tire recommendations for a rim.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -644,6 +648,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 >
 > For e-commerce product pages: "This wheel fits: BMW X5, Audi Q7..."
 > To drill into a specific generation, use ws_find_vehicle_modifications_for_rim.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests a compatibility list or product card for a rim.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -671,6 +679,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 >
 > Returns per-vehicle rows with OEM wheel specs (rim, tire, frontspace,
 > backspace) and fitment deltas vs the searched rim.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests the trims behind a rim compatibility result.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -702,6 +714,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > Returns per-vehicle rows with OEM wheel specs (rim, tire) and fitment
 > deltas vs the searched rim + tire package. Completes the e-commerce
 > chain: package search → generations → specific trims.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests the trims behind a package compatibility result.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -733,6 +749,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 >
 > For e-commerce: "This tire fits: Honda Civic, Toyota Camry..."
 > To drill into a specific generation, use ws_find_vehicle_modifications_for_tire.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests a compatibility list or product card for a tire.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -775,6 +795,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 > that differ from the parent search — re-check those first. A genuinely
 > empty drill-down also happens briefly after a catalog update (parent
 > and drill-down are cached independently); that is not an error.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests the trims behind a tire compatibility result.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -805,6 +829,10 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 >
 > For e-commerce combo/bundle product pages.
 > To drill into a specific generation, use ws_find_vehicle_modifications_for_package.
+>
+> IMPORTANT: This is a Classified method — only call when a user explicitly
+> requests a compatibility list or product card for a rim + tire package.
+> Do not call in autonomous loops or for bulk generation.
 
 **Parameters**:
 | Parameter | Type | Description |
@@ -876,7 +904,7 @@ E-commerce product card generation. Geometric 2D fitment (backspace/frontspace).
 | ---------- | ------------ | -------------- | ------------------- |
 | Catalog    | 6            | 6              | None                |
 | Search     | 8            | 8              | ToS (except upsteps)|
-| Classified | 7            | 7              | None                |
+| Classified | 7            | 7              | ToS (user-initiated)|
 | Utility    | 1            | 1              | None                |
 | **Total**  | **22**       | **22**         | —                   |
 

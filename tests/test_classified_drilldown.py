@@ -207,8 +207,22 @@ async def test_tire_drilldown_rejects_rim_geometry_params(captured):
     assert captured["calls"] == []
 
 
-async def test_tire_drilldown_empty_result_carries_hint(captured):
+@pytest.mark.parametrize("tool,args,parent", [
+    ("ws_find_vehicle_modifications_for_tire", TIRE_DRILLDOWN_ARGS, "ws_find_vehicles_for_tire"),
+    ("ws_find_vehicle_modifications_for_package", PACKAGE_ARGS, "ws_find_vehicles_for_package"),
+    ("ws_find_vehicle_modifications_for_rim", {k: v for k, v in PACKAGE_ARGS.items()
+                                               if k not in ("section_width", "aspect_ratio")},
+     "ws_find_vehicles_for_rim"),
+])
+async def test_drilldown_empty_result_carries_hint(captured, tool, args, parent):
+    """All three drill-downs answer a wrong slug with an empty 200 — the hint is the only signal."""
     captured["rows"] = []
-    data = await _call("ws_find_vehicle_modifications_for_tire", TIRE_DRILLDOWN_ARGS)
+    data = await _call(tool, args)
     assert data["total"] == 0 and data["results"] == []
-    assert "slugs" in data["hint"]
+    assert "slugs" in data["hint"] and parent in data["hint"]
+
+
+async def test_drilldown_non_empty_result_has_no_hint(captured):
+    captured["rows"] = [_row()]
+    data = await _call("ws_find_vehicle_modifications_for_package", PACKAGE_ARGS)
+    assert "hint" not in data

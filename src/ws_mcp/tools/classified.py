@@ -76,6 +76,23 @@ def _geometry_params(
     }
 
 
+def _drilldown_response(items: list, total: int, offset: int, limit: int, parent_tool: str, spec: str) -> dict:
+    """Paginate a drill-down page; on an empty result explain the HTTP-200-empty failure modes.
+
+    All three .../search/modifications/ endpoints answer a wrong slug, or spec
+    params that differ from the parent search, with an empty 200 rather than a
+    validation error, so the hint is the only signal the model gets.
+    """
+    result = paginated_response(items, total, offset, limit)
+    if total == 0:
+        result["hint"] = (
+            f"No trims matched. Re-check the make/model/generation slugs and that the {spec} parameters "
+            f"equal the parent {parent_tool} call; an empty result right after a catalog update is expected "
+            f"(parent and drill-down are cached independently for 1 h)."
+        )
+    return result
+
+
 def register(mcp: FastMCP):
     """Register classified tools with the MCP server."""
 
@@ -228,7 +245,7 @@ def register(mcp: FastMCP):
         data = await api.get("/v2/classified/by_rim/search/modifications/", params)
         total = data["meta"]["count"]
         items = [map_drilldown_row(item) for item in data["data"]]
-        return paginated_response(items, total, offset, limit)
+        return _drilldown_response(items, total, offset, limit, "ws_find_vehicles_for_rim", "rim and tolerance")
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicle_modifications_for_package(
@@ -277,7 +294,9 @@ def register(mcp: FastMCP):
         data = await api.get("/v2/classified/by_package/search/modifications/", params)
         total = data["meta"]["count"]
         items = [map_drilldown_row(item) for item in data["data"]]
-        return paginated_response(items, total, offset, limit)
+        return _drilldown_response(
+            items, total, offset, limit, "ws_find_vehicles_for_package", "rim, tire and tolerance"
+        )
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_tire(
@@ -353,14 +372,7 @@ def register(mcp: FastMCP):
         data = await api.get("/v2/classified/by_tire/search/modifications/", params)
         total = data["meta"]["count"]
         items = [map_tire_drilldown_row(item) for item in data["data"]]
-        result = paginated_response(items, total, offset, limit)
-        if total == 0:
-            result["hint"] = (
-                "No trims matched. Re-check the make/model/generation slugs and that section_width, "
-                "aspect_ratio and rim_diameter equal the parent ws_find_vehicles_for_tire call; "
-                "an empty result right after a catalog update is expected (independent 1 h caches)."
-            )
-        return result
+        return _drilldown_response(items, total, offset, limit, "ws_find_vehicles_for_tire", "tire")
 
     @mcp.tool(annotations=CLASSIFIED_ANNOTATIONS, tags={"classified", "e-commerce", "user-initiated"})
     async def ws_find_vehicles_for_package(
